@@ -50,3 +50,4 @@ src/
 
 La capa de juego no depende de Electron directamente. En el futuro se pueden añadir escenas, más entidades y sprites manteniendo el proceso principal intacto.
 # TheVillageGame
+# TheVillageGame
