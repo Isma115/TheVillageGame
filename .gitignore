@@ -1,0 +1,60 @@
+# Dependencias instaladas
+node_modules/
+
+# Logs y archivos de diagnóstico
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cobertura y cachés de herramientas
+coverage/
+.nyc_output/
+.cache/
+.eslintcache
+.parcel-cache/
+.vite/
+
+# Builds y artefactos empaquetados de Electron
+dist/
+build/
+out/
+release/
+*.asar
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.AppImage
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+*.local
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Configuración del sistema operativo y editores
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# Artefactos locales de Codex/agentes
+.codex/
+.agents/
+generated_images/
+screenshots/

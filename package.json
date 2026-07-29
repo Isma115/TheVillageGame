@@ -1,0 +1,20 @@
+{
+  "name": "pradera-electron",
+  "version": "0.1.0",
+  "description": "Base jugable para un videojuego top-down hecho con Electron.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "check": "node --check src/main/main.js && node --check src/main/preload.js"
+  },
+  "keywords": [
+    "electron",
+    "canvas",
+    "game"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^37.2.6"
+  }
+}
