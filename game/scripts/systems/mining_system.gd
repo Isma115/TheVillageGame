@@ -87,6 +87,73 @@ func depleted_vein_count(area_id: StringName = &"") -> int:
 	return vein_count(area_id) - active_vein_count(area_id)
 
 
+func snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for vein in veins:
+		if not is_instance_valid(vein) or vein.definition == null:
+			continue
+		result.append({
+			"area": String(vein.interaction_area_id()),
+			"id": String(vein.definition.id),
+			"health": vein.current_health,
+			"depleted": vein.harvest_depleted
+		})
+	return result
+
+
+func restore(snapshot_data: Array) -> void:
+	var saved_by_key: Dictionary = {}
+	for value in snapshot_data:
+		if not value is Dictionary:
+			continue
+		var state := value as Dictionary
+		var key := "%s:%s" % [state.get("area", ""), state.get("id", "")]
+		saved_by_key[key] = state
+
+	for value in _sites.values():
+		var site := value as MiningSiteRuntime
+		if site != null:
+			site.active_vein_count = 0
+
+	for vein in veins:
+		if not is_instance_valid(vein) or vein.definition == null:
+			continue
+
+		var key := "%s:%s" % [
+			String(vein.interaction_area_id()),
+			String(vein.definition.id)
+		]
+		var state := saved_by_key.get(key) as Dictionary
+		if state != null:
+			vein.current_health = clampi(
+				int(state.get("health", vein.maximum_health)),
+				0,
+				vein.maximum_health
+			)
+			vein.harvest_depleted = bool(state.get("depleted", false))
+			vein.harvest_depleted = vein.harvest_depleted or vein.current_health <= 0
+			vein.rotation = 0.0
+			vein.scale = Vector2.ONE
+
+		var site := _vein_sites.get(vein.get_instance_id()) as MiningSiteRuntime
+		var active := not vein.harvest_depleted
+		vein.set_interaction_focused(false)
+		vein.set_interaction_active(active)
+		if active:
+			if site != null:
+				site.collision_world.register_obstacle(
+					vein.collision_key(),
+					vein.collision_rectangle()
+				)
+				site.active_vein_count += 1
+			_interaction_system.register_interactable(vein)
+		else:
+			if site != null:
+				site.collision_world.unregister_obstacle(vein.collision_key())
+			_interaction_system.unregister_interactable(vein)
+		vein.queue_redraw()
+
+
 func mineral_type_count() -> int:
 	var mineral_ids: Dictionary = {}
 	for value in _sites.values():

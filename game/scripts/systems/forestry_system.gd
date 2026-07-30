@@ -60,6 +60,57 @@ func stump_count() -> int:
 	return tree_count() - active_tree_count()
 
 
+func snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for tree in trees:
+		if not is_instance_valid(tree):
+			continue
+		result.append({
+			"index": tree.tree_index,
+			"health": tree.current_health,
+			"depleted": tree.harvest_depleted,
+			"stump": tree.is_stump
+		})
+	return result
+
+
+func restore(snapshot_data: Array) -> void:
+	var saved_by_index: Dictionary = {}
+	for value in snapshot_data:
+		if value is Dictionary:
+			var state := value as Dictionary
+			saved_by_index[int(state.get("index", -1))] = state
+
+	_active_tree_count = 0
+	for tree in trees:
+		if not is_instance_valid(tree):
+			continue
+
+		var state := saved_by_index.get(tree.tree_index) as Dictionary
+		if state != null:
+			tree.current_health = clampi(
+				int(state.get("health", tree.maximum_health)),
+				0,
+				tree.maximum_health
+			)
+			tree.harvest_depleted = bool(state.get("depleted", false))
+			tree.is_stump = bool(state.get("stump", false))
+			tree.harvest_depleted = tree.harvest_depleted or tree.current_health <= 0
+			tree.rotation = 0.0
+
+		var active := not tree.harvest_depleted and not tree.is_stump
+		tree.set_interaction_focused(false)
+		tree.set_interaction_active(active)
+		if active:
+			_collision_world.register_obstacle(tree.collision_key(), tree.collision_rectangle())
+			_interaction_system.register_interactable(tree)
+			_active_tree_count += 1
+		else:
+			_collision_world.unregister_obstacle(tree.collision_key())
+			_interaction_system.unregister_interactable(tree)
+		tree.queue_redraw()
+
+
 func _generate_forest() -> void:
 	var generation_bounds := _catalog.playable_bounds().grow(-_forest.world_edge_inset)
 	if generation_bounds.size.x <= 0.0 or generation_bounds.size.y <= 0.0:

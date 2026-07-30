@@ -114,19 +114,6 @@ func _draw() -> void:
 	if definition == null:
 		return
 
-	if is_interaction_focused() and not is_stump:
-		draw_arc(
-			Vector2(0.0, -5.0),
-			(definition.collision_radius + 8.0) * visual_scale,
-			0.0,
-			TAU,
-			32,
-			Color(1.0, 1.0, 1.0, 0.82),
-			2.5,
-			true
-		)
-
-	_draw_shadow()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * visual_scale)
 	if is_stump:
 		_draw_stump()
@@ -146,18 +133,6 @@ func _draw_sprite() -> void:
 		Rect2(-render_size * 0.5, -render_size, render_size, render_size),
 		false
 	)
-
-
-func _draw_shadow() -> void:
-	var radius := definition.canopy_radius * visual_scale
-	var shadow_size := Vector2(radius * 0.78, radius * 0.26)
-	if is_stump:
-		shadow_size *= 0.42
-	draw_set_transform(Vector2(4.0, 5.0), 0.0, shadow_size)
-	draw_circle(Vector2.ZERO, 1.0, Color(0.055, 0.20, 0.09, 0.20))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
 func _draw_broadleaf() -> void:
 	_draw_trunk()
 	var canopy_center := Vector2(0.0, -definition.trunk_size.y - definition.canopy_radius * 0.34)

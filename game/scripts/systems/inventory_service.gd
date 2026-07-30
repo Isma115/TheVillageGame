@@ -72,14 +72,21 @@ func definition_for(item_id: StringName) -> ItemDefinition:
 
 
 func snapshot() -> Dictionary:
-	return _quantities.duplicate(true)
+	var result := {}
+	for item_id in _quantities:
+		result[String(item_id)] = int(_quantities[item_id])
+	return result
 
 
 func restore(snapshot_data: Dictionary) -> void:
 	for item_id in _definitions:
 		var definition := _definitions[item_id] as ItemDefinition
+		var saved_quantity: Variant = snapshot_data.get(
+			String(item_id),
+			snapshot_data.get(item_id, 0)
+		)
 		var quantity := clampi(
-			int(snapshot_data.get(item_id, 0)),
+			int(saved_quantity),
 			0,
 			definition.max_stack
 		)

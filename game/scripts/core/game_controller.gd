@@ -24,9 +24,11 @@ var overworld_collision_world := CollisionWorld.new()
 var mine_runtimes: Array[MineAreaRuntime] = []
 var input_state := InputState.new()
 var inventory := InventoryService.new()
+var save_game_service := SaveGameService.new()
 var debug_elapsed := 0.0
 var mobile_build := false
 var initialized := false
+var game_paused := false
 
 
 func _ready() -> void:
@@ -51,6 +53,7 @@ func _ready() -> void:
 		return
 
 	initialized = true
+	_load_saved_game()
 	if not mobile_build:
 		_update_debug()
 	if SMOKE_TEST_ARGUMENT in OS.get_cmdline_user_args():
@@ -83,6 +86,9 @@ func _initialize_world() -> void:
 
 func _initialize_interface() -> void:
 	game_hud.initialize(mobile_build)
+	game_hud.pause_state_changed.connect(_on_pause_state_changed)
+	game_hud.save_confirmed.connect(_on_save_confirmed)
+	game_hud.save_cancelled.connect(_on_save_cancelled)
 	inventory.item_changed.connect(game_hud.set_inventory_item)
 	for item in catalog.item_definitions():
 		game_hud.set_inventory_item(item, inventory.quantity_of(item.id))
@@ -188,13 +194,14 @@ func _initialize_gameplay_systems() -> void:
 		catalog.animal_definitions(),
 		overworld_actor_layer,
 		overworld_collision_world,
-		catalog.playable_bounds()
+		catalog.playable_bounds(),
+		player.camera
 	)
 	interaction_highlight.initialize(catalog, not mobile_build)
 
 
 func _process(delta: float) -> void:
-	if not initialized:
+	if not initialized or game_paused:
 		return
 
 	player.update_player(delta)
@@ -217,7 +224,36 @@ func _notification(what: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _is_pause_event(event):
+		if game_hud.is_save_confirmation_visible():
+			game_hud.cancel_save_confirmation()
+		elif game_paused:
+			game_hud.resume_game()
+		else:
+			game_hud.open_pause_menu()
+		get_viewport().set_input_as_handled()
+		return
+
+	if game_paused:
+		return
 	input_state.handle_event(event)
+
+
+func _is_pause_event(event: InputEvent) -> bool:
+	return (
+		event is InputEventKey
+		and event.pressed
+		and not event.echo
+		and (
+			event.keycode == KEY_ESCAPE
+			or event.physical_keycode == KEY_ESCAPE
+		)
+	)
+
+
+func _on_pause_state_changed(paused: bool) -> void:
+	game_paused = paused
+	input_state.reset_virtual_controls()
 
 
 func _on_area_changed(area_id: StringName, label: String) -> void:
@@ -230,8 +266,30 @@ func _on_area_changed(area_id: StringName, label: String) -> void:
 
 
 func _update_debug() -> void:
+	var fps := float(Engine.get_frames_per_second())
+	var cpu_process_ms := maxf(
+		0.0,
+		float(Performance.get_monitor(Performance.TIME_PROCESS)) * 1000.0
+	)
+	var frame_budget_ms := 1000.0 / fps if fps > 0.0 else 0.0
+	var cpu_frame_percent := (
+		cpu_process_ms / frame_budget_ms * 100.0
+		if frame_budget_ms > 0.0
+		else 0.0
+	)
+	var gpu_memory_bytes := float(
+		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
+	)
+	var gpu_draw_calls := int(
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	)
+
 	game_hud.update_debug({
-		"fps": Engine.get_frames_per_second(),
+		"fps": fps,
+		"cpu_process_ms": cpu_process_ms,
+		"cpu_frame_percent": cpu_frame_percent,
+		"gpu_memory_bytes": gpu_memory_bytes,
+		"gpu_draw_calls": gpu_draw_calls,
 		"memory_bytes": Performance.get_monitor(Performance.MEMORY_STATIC),
 		"entities": (
 			1
@@ -257,6 +315,83 @@ func _update_debug() -> void:
 		"path_tiles": game_world.path_tile_count(),
 		"particles": player.run_cloud_count()
 	})
+
+
+func _on_save_confirmed(exit_after_save: bool) -> void:
+	var saved := save_game_service.save_game(_snapshot_game())
+	if exit_after_save:
+		if not saved:
+			push_error("No se pudo guardar antes de salir del juego.")
+		get_tree().quit()
+		return
+	game_hud.show_save_result(
+		saved,
+		"Partida guardada." if saved else "No se pudo guardar la partida."
+	)
+
+
+func _on_save_cancelled(exit_after_save: bool) -> void:
+	if not exit_after_save:
+		return
+	get_tree().quit()
+
+
+func _snapshot_game() -> Dictionary:
+	return {
+		"area": String(world_area_system.active_area_id()),
+		"player": {
+			"x": player.global_position.x,
+			"y": player.global_position.y
+		},
+		"inventory": inventory.snapshot(),
+		"trees": forestry_system.snapshot(),
+		"veins": mining_system.snapshot()
+	}
+
+
+func _load_saved_game() -> void:
+	if SMOKE_TEST_ARGUMENT in OS.get_cmdline_user_args():
+		return
+
+	var snapshot := save_game_service.load_game()
+	if snapshot.is_empty():
+		return
+
+	var area_id := StringName(
+		str(snapshot.get("area", GameCatalog.OVERWORLD_AREA_ID))
+	)
+	if world_area_system.area_runtime(area_id) == null:
+		push_warning(
+			"La partida guardada apunta al área '%s'; se cargará la aldea."
+			% area_id
+		)
+		area_id = GameCatalog.OVERWORLD_AREA_ID
+
+	var fallback_position := catalog.player_spawn
+	if area_id != GameCatalog.OVERWORLD_AREA_ID:
+		var mine := catalog.mine_for_area(area_id)
+		if mine != null:
+			fallback_position = mine.player_spawn
+	var saved_player := snapshot.get("player", {}) as Dictionary
+	var player_position := Vector2(
+		float(saved_player.get("x", fallback_position.x)),
+		float(saved_player.get("y", fallback_position.y))
+	)
+
+	if world_area_system.active_area_id() == area_id:
+		player.position = player_position
+	else:
+		world_area_system.transition_to(area_id, player_position)
+
+	var saved_inventory: Variant = snapshot.get("inventory", {})
+	if saved_inventory is Dictionary:
+		inventory.restore(saved_inventory as Dictionary)
+	var saved_trees: Variant = snapshot.get("trees", [])
+	if saved_trees is Array:
+		forestry_system.restore(saved_trees as Array)
+	var saved_veins: Variant = snapshot.get("veins", [])
+	if saved_veins is Array:
+		mining_system.restore(saved_veins as Array)
 
 
 func _mine_static_obstacle_count() -> int:

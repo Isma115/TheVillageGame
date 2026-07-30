@@ -11,6 +11,8 @@ verdad para escenas, comportamiento y contenido.
 - jugador con movimiento en ocho direcciones, carrera y polvo;
 - cámara suave limitada al mapa;
 - fauna animada y reproducible con comportamiento configurable;
+- aparición gradual fuera de cámara desde las esquinas, con máximos por especie
+  (2 ciervos, 4 pájaros, 1 jabalí y 3 conejos);
 - bosque procedural determinista con sprites de robles, pinos y abedules;
 - tala contextual, árboles con salud, caída, tocones e inventario de madera;
 - entrada de mina pixel-art en las afueras y transición entre escenarios;
@@ -19,7 +21,8 @@ verdad para escenas, comportamiento y contenido.
 - controles de teclado y controles táctiles multitáctiles;
 - selector de tesela bajo el puntero;
 - pantalla de carga con progreso real y gestión de errores;
-- panel de depuración con FPS, memoria, entidades, objetos y partículas;
+- panel de depuración con FPS, CPU, GPU, memoria, entidades, objetos y partículas;
+- menú de pausa con `Esc`, guardado de una única partida y confirmación Aceptar/Cancelar, también al salir;
 - exportación Android mediante el motor portátil del proyecto.
 
 ## Ejecutar
@@ -37,9 +40,9 @@ Para abrir directamente el juego:
 ./run-godot.sh
 ```
 
-Controles: `WASD` o flechas para moverse, `Shift` para correr y `E` o
-`Espacio` para usar la interacción contextual. En móvil aparecen joystick,
-carrera y un botón de acción cuando hay un objetivo cercano.
+Controles: `WASD` o flechas para moverse, `Shift` para correr, `E` o `Espacio`
+para usar la interacción contextual y `Esc` para abrir la pausa. En móvil
+aparecen joystick, carrera y un botón de acción cuando hay un objetivo cercano.
 
 Para comprobar únicamente que toda la escena se inicializa, sin abrir ventana
 ni mantener el juego ejecutándose:
@@ -64,6 +67,7 @@ game/
 │   ├── animals/
 │   ├── houses/
 │   ├── mining/
+│   ├── player/
 │   ├── terrain/
 │   └── trees/
 ├── data/                # contenido editable, sin lógica duplicada
@@ -96,12 +100,27 @@ game/
 sistemas reciben sus dependencias desde `game.tscn`; no leen tablas globales ni
 conocen rutas concretas de imágenes.
 
+El menú de pausa se controla desde `GameHud` y detiene la simulación mientras
+está abierto. `SaveGameService` mantiene una sola ranura en
+`user://pradera_save.json`; al iniciar, restaura automáticamente el área y
+posición del jugador, el inventario, los árboles y las vetas agotadas.
+
+El jugador usa `game/assets/player/player-directional.png`, un atlas 8x4 con
+ocho fotogramas por dirección (frontal, izquierda, derecha y espalda). El
+movimiento sigue admitiendo diagonales; en ellas se muestra la dirección
+cardinal dominante. El tamaño visual y el anclaje a los pies se configuran en
+`scenes/actors/player.tscn`, dejando el actor listo para sustituir el atlas o
+añadir más estados sin cambiar el movimiento ni las colisiones. Su ancho de
+render actual es de 62,4 px y no dibuja una sombra propia.
+
 ## Ampliar el juego
 
 Para añadir una especie, crea un recurso `AnimalDefinition` en
 `game/data/animals/`, asigna su spritesheet y añádelo al catálogo. Las
-velocidades, animaciones, colisión, área de paseo, pesos y tiempos de conducta
-se editan desde el Inspector.
+velocidades, animaciones, colisión, área de paseo, pesos, tiempos de conducta y
+`max_population` se editan desde el Inspector. `WildlifeManager` elige una
+esquina del mapa, descarta posiciones dentro de la cámara y deja que cada
+animal vague alrededor de su punto de entrada.
 
 Las casas y caminos siguen el mismo patrón con `HouseDefinition` y
 `PathRouteDefinition`. Para añadir lógica de otra familia de entidades, crea su

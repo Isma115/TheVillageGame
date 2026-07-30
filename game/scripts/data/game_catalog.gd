@@ -25,8 +25,8 @@ const OVERWORLD_AREA_ID: StringName = &"overworld"
 
 @export_category("Jugador")
 @export_range(1.0, 256.0, 1.0) var player_radius := 19.0
-@export_range(0.0, 2048.0, 1.0) var player_walk_speed := 270.0
-@export_range(0.0, 2048.0, 1.0) var player_run_speed := 430.0
+@export_range(0.0, 2048.0, 1.0) var player_walk_speed := 170.0
+@export_range(0.0, 2048.0, 1.0) var player_run_speed := 270.0
 @export var player_spawn := Vector2.ZERO
 
 @export_category("Cámara")

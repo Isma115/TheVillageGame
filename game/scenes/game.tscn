@@ -54,6 +54,12 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 script = ExtResource("7_wildlife")
 animal_scene = ExtResource("8_animal")
+spawn_interval = 1.8
+corner_spawn_band = 240.0
+corner_edge_inset = 48.0
+camera_clearance = 96.0
+spawn_attempts = 24
+random_seed = 7391
 
 [node name="InteractionSystem" type="Node" parent="Systems"]
 unique_name_in_owner = true

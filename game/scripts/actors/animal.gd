@@ -17,14 +17,15 @@ var random_source := RandomNumberGenerator.new()
 
 
 func initialize(
-	animal_definition: AnimalDefinition,
-	world_collision: CollisionWorld,
-	world_bounds: Rect2
+	 animal_definition: AnimalDefinition,
+	 world_collision: CollisionWorld,
+	 world_bounds: Rect2,
+	 spawn_position: Vector2
 ) -> void:
 	definition = animal_definition
 	collision_world = world_collision
 	playable_bounds = world_bounds
-	position = definition.world_position
+	position = spawn_position
 	home_position = position
 	target_position = position
 	facing = definition.initial_direction.normalized()

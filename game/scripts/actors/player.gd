@@ -3,6 +3,15 @@ class_name PlayerActor
 
 const RUN_CLOUD_DISTANCE := 27.0
 
+@export_category("Directional spritesheet")
+@export var sprite_texture: Texture2D
+@export_range(1, 64, 1) var sprite_columns := 8
+@export_range(1, 64, 1) var sprite_rows := 4
+@export var sprite_frame_size := Vector2i(192, 256)
+@export_range(1.0, 128.0, 0.1) var sprite_render_width := 62.4
+@export_range(0.0, 1.0, 0.01) var sprite_foot_anchor := 0.92
+@export_range(0.0, 128.0, 0.5) var sprite_ground_y := 40.0
+
 @onready var camera: Camera2D = %PlayerCamera
 
 var catalog: GameCatalog
@@ -159,13 +168,64 @@ func _draw() -> void:
 		return
 
 	_draw_run_clouds()
+	if _has_directional_sprite():
+		_draw_directional_sprite()
+	else:
+		_draw_procedural()
+
+
+func _has_directional_sprite() -> bool:
+	var texture_size := sprite_texture.get_size() if sprite_texture != null else Vector2.ZERO
+	return (
+		sprite_texture != null
+		and sprite_columns > 0
+		and sprite_rows > 0
+		and sprite_frame_size.x > 0
+		and sprite_frame_size.y > 0
+		and texture_size.x >= sprite_columns * sprite_frame_size.x
+		and texture_size.y >= sprite_rows * sprite_frame_size.y
+	)
+
+
+func _draw_directional_sprite() -> void:
+	var frame_row := clampi(_direction_row(), 0, sprite_rows - 1)
+	var frame_index := _sprite_frame()
+	var source_rect := Rect2(
+		Vector2(
+			frame_index * sprite_frame_size.x,
+			frame_row * sprite_frame_size.y
+		),
+		Vector2(sprite_frame_size.x, sprite_frame_size.y)
+	)
+	var draw_width := sprite_render_width
+	var draw_height := draw_width * float(sprite_frame_size.y) / float(sprite_frame_size.x)
+	var destination := Rect2(
+		Vector2(-draw_width * 0.5, sprite_ground_y - draw_height * sprite_foot_anchor),
+		Vector2(draw_width, draw_height)
+	)
+	draw_texture_rect_region(sprite_texture, destination, source_rect, Color.WHITE, false, true)
+
+
+func _direction_row() -> int:
+	# The sheet keeps all four cardinal directions explicit, so diagonal movement
+	# chooses its dominant axis without mirroring a side-facing frame.
+	if absf(facing.y) >= absf(facing.x):
+		return 0 if facing.y >= 0.0 else 3 # down/front, up/back
+	return 2 if facing.x >= 0.0 else 1 # right, left
+
+
+func _sprite_frame() -> int:
+	if actor_state == &"idle":
+		return 0
+	return posmod(floori(animation_time), sprite_columns)
+
+
+func _draw_procedural() -> void:
 
 	var moving := actor_state != &"idle"
 	var stride := sin(animation_time) * (7.0 if actor_state == &"running" else 5.0) if moving else 0.0
 	var bob := absf(sin(animation_time)) * -1.6 if moving else sin(animation_time) * 0.6
 
-	draw_set_transform(Vector2(0.0, 12.0), 0.0, Vector2(27.0, 14.0))
-	draw_circle(Vector2.ZERO, 1.0, Color(0.086, 0.247, 0.118, 0.23))
 	draw_set_transform(Vector2(0.0, bob), 0.0, Vector2.ONE)
 
 	# Piernas y zapatos.

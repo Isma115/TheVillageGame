@@ -27,6 +27,25 @@ tala. `MiningSystem` aplica el mismo límite para las vetas y
 operación. Las interacciones están filtradas por área, por lo que dos escenarios
 pueden reutilizar las mismas coordenadas sin interferirse.
 
+El panel de depuración de escritorio muestra FPS, tiempo de proceso de CPU,
+porcentaje del presupuesto del frame, memoria de vídeo de GPU y llamadas de
+dibujo, además de las entidades del mundo. Estas métricas se consultan desde
+`Performance` y se entregan al HUD como datos, sin acoplarlas a los sistemas de
+jugabilidad.
+
+`SaveGameService` centraliza la persistencia en una única ranura JSON bajo
+`user://pradera_save.json`. El menú de pausa se abre con `Esc`, permite
+continuar, guardar o salir; tanto Guardar como Salir muestran confirmación
+Aceptar/Cancelar. Al salir, Aceptar guarda y cierra, mientras Cancelar cierra
+sin guardar. El guardado restaura posición, área, inventario, árboles talados y
+vetas agotadas.
+
+`WildlifeManager` genera fauna de forma gradual. Cada `AnimalDefinition` declara
+su `max_population`; los puntos de aparición se eligen en las cuatro esquinas
+del área jugable y se rechazan si la cámara los está mostrando o si colisionan
+con el mundo o con otro animal. La escala visual se controla por especie con
+`render_width`.
+
 La mina jugable se encuentra en `data/mines/village_mine.tres`. Sus minerales
 están en `data/minerals/`, los objetos de inventario en `data/items/` y sus dos
 portales en `data/portals/`. Añadir o equilibrar contenido no requiere modificar
@@ -38,6 +57,13 @@ colisiones y vetas propios.
 vetas. `WorldAreaRuntime`, `MineAreaRuntime`, `MiningSiteRuntime` e
 `InteractionEntry`, bajo `scripts/runtime/`, mantienen estado tipado y evitan
 contratos basados en claves de diccionario.
+
+El jugador se presenta con el atlas `assets/player/player-directional.png`.
+Sus filas representan frontal, izquierda, derecha y espalda, con ocho frames
+por fila; el actor conserva el movimiento en ocho direcciones y selecciona la
+fila cardinal dominante para las diagonales. El tamaño del render y el anclaje
+de los pies son propiedades de `scenes/actors/player.tscn`, independientes de
+la lógica de movimiento.
 
 El bosque utiliza sprites de roble, pino y abedul configurados desde sus
 `TreeDefinition`. Las texturas de ejecución están normalizadas a `250x250`;
@@ -52,7 +78,7 @@ Desde la raíz del repositorio:
 ./scripts/export-android.sh
 ```
 
-Controles: `WASD` o flechas para moverse, `Shift` para correr y `E` o
-`Espacio` para la acción contextual. La misma acción entra o sale de la mina,
-tala árboles y pica vetas. En móvil, el botón contextual se actualiza con el
-objetivo más cercano.
+Controles: `WASD` o flechas para moverse, `Shift` para correr, `E` o `Espacio`
+para la acción contextual y `Esc` para abrir la pausa. La misma acción entra o
+sale de la mina, tala árboles y pica vetas. En móvil, el botón contextual se
+actualiza con el objetivo más cercano.

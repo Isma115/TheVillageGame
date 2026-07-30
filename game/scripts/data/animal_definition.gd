@@ -10,6 +10,7 @@ class_name AnimalDefinition
 @export var world_position := Vector2.ZERO
 @export var initial_direction := Vector2.RIGHT
 @export var random_seed := 1
+@export_range(0, 64, 1) var max_population := 1
 
 @export_group("Representación")
 @export_range(1.0, 1024.0, 1.0) var render_width := 58.0
@@ -96,6 +97,8 @@ func validate() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if String(id).is_empty():
 		errors.append("Un animal no tiene id.")
+	if max_population < 0:
+		errors.append("El animal '%s' tiene un máximo de población inválido." % id)
 	if texture == null:
 		errors.append("El animal '%s' no tiene textura." % id)
 	if render_width <= 0.0:
