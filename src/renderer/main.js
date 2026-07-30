@@ -1,4 +1,5 @@
 import { Game } from './game.js';
+import { MobileControls } from './game/mobile-controls.js';
 
 const canvas = document.querySelector('#game-canvas');
 const loadingScreen = document.querySelector('#loading-screen');
@@ -11,6 +12,11 @@ const debugObjects = document.querySelector('#debug-objects');
 const debugObjectDetail = document.querySelector('#debug-object-detail');
 const debugParticles = document.querySelector('#debug-particles');
 const debugMemory = document.querySelector('#debug-memory');
+const mobileControlsToggle = document.querySelector('#mobile-controls-toggle');
+const mobileControlsRoot = document.querySelector('#mobile-controls');
+const mobileStick = document.querySelector('#mobile-stick');
+const mobileStickKnob = document.querySelector('#mobile-stick-knob');
+const mobileRunButton = document.querySelector('#mobile-run');
 let memoryRequestPending = false;
 let memoryWarningShown = false;
 
@@ -69,6 +75,19 @@ function formatMemory(megabytes) {
 }
 
 const game = new Game(canvas, updateLoadingProgress, updateDebug);
+const mobileControls = new MobileControls({
+  input: game.input,
+  root: mobileControlsRoot,
+  stick: mobileStick,
+  knob: mobileStickKnob,
+  runButton: mobileRunButton
+});
+
+mobileControlsToggle.checked = false;
+mobileControls.setEnabled(false);
+mobileControlsToggle.addEventListener('change', () => {
+  mobileControls.setEnabled(mobileControlsToggle.checked);
+});
 
 game.ready
   .then(() => {

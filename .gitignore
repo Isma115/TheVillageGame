@@ -30,6 +30,19 @@ release/
 *.rpm
 *.AppImage
 
+# Herramienta Godot portátil local al repositorio
+tools/godot/
+
+# Estado y cachés generados por el proyecto Godot
+godot/.godot/
+godot/editor_data/
+godot/export_templates/
+godot/feature_profiles/
+godot/script_templates/
+godot/text_editor_themes/
+godot/**/*.import
+godot/**/*.uid
+
 # Configuración local y secretos
 .env
 .env.*

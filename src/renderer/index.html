@@ -56,7 +56,36 @@
         <span aria-hidden="true"> · </span>
         <span id="debug-particles">--</span> partículas
       </div>
+      <label class="debug-option">
+        <input id="mobile-controls-toggle" type="checkbox" />
+        <span>Controles móviles</span>
+      </label>
     </aside>
+
+    <div
+      id="mobile-controls"
+      class="mobile-controls"
+      aria-label="Controles móviles"
+      aria-hidden="true"
+      hidden
+    >
+      <div
+        id="mobile-stick"
+        class="mobile-stick"
+        role="application"
+        aria-label="Joystick virtual"
+      >
+        <span id="mobile-stick-knob" class="mobile-stick-knob"></span>
+      </div>
+      <button
+        id="mobile-run"
+        class="mobile-run"
+        type="button"
+        aria-pressed="false"
+      >
+        Correr
+      </button>
+    </div>
 
     <script type="module" src="./main.js"></script>
   </body>

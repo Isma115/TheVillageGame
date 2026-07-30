@@ -14,6 +14,7 @@ const MOVEMENT_KEYS = new Set([
 export class Input {
   constructor(target = window) {
     this.keys = new Set();
+    this.virtualKeys = new Set();
     this.justPressed = new Set();
 
     this.onKeyDown = (event) => {
@@ -34,6 +35,7 @@ export class Input {
 
     this.onBlur = () => {
       this.keys.clear();
+      this.clearVirtualKeys();
     };
 
     target.addEventListener('keydown', this.onKeyDown, { passive: false });
@@ -42,7 +44,24 @@ export class Input {
   }
 
   isDown(...codes) {
-    return codes.some((code) => this.keys.has(code));
+    return codes.some((code) => this.keys.has(code) || this.virtualKeys.has(code));
+  }
+
+  setVirtualKeys(codes) {
+    this.virtualKeys = new Set(codes);
+  }
+
+  setVirtualKey(code, active) {
+    if (active) {
+      this.virtualKeys.add(code);
+      return;
+    }
+
+    this.virtualKeys.delete(code);
+  }
+
+  clearVirtualKeys() {
+    this.virtualKeys.clear();
   }
 
   consumePress(code) {

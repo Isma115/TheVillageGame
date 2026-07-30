@@ -22,6 +22,28 @@ npm install
 npm start
 ```
 
+## Port nativo Godot
+
+El port nativo está en `godot/`. El editor portátil de Godot se guarda localmente en `tools/godot/`, está excluido por Git y no se instala en el sistema ni se añade al `PATH`.
+
+```bash
+./scripts/run-godot.sh --editor
+```
+
+Para ejecutar directamente el port:
+
+```bash
+./scripts/run-godot.sh
+```
+
+Para generar la APK Android de depuración:
+
+```bash
+./scripts/export-android.sh
+```
+
+El archivo se crea en `build/android/Pradera-debug.apk`.
+
 ## Estructura
 
 ```text
