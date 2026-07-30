@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TreeDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tree_definition.gd" id="1_tree"]
+[ext_resource type="Resource" path="res://data/items/wood.tres" id="2_wood"]
+[ext_resource type="Texture2D" path="res://assets/trees/oak.png" id="3_texture"]
+
+[resource]
+script = ExtResource("1_tree")
+id = &"oak"
+label = "roble"
+visual_style = "broadleaf"
+texture = ExtResource("3_texture")
+sprite_render_size = 126.0
+trunk_color = Color(0.396078, 0.258824, 0.145098, 1)
+trunk_light_color = Color(0.568627, 0.392157, 0.219608, 1)
+canopy_dark_color = Color(0.117647, 0.290196, 0.172549, 1)
+canopy_color = Color(0.215686, 0.458824, 0.231373, 1)
+canopy_light_color = Color(0.376471, 0.65098, 0.294118, 1)
+trunk_size = Vector2(16, 55)
+canopy_radius = 43.0
+collision_radius = 16.0
+interaction_distance = 94.0
+max_health = 3
+yielded_item = ExtResource("2_wood")
+yield_min = 3
+yield_max = 5

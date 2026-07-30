@@ -1,0 +1,239 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_debug"]
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0.0941176, 0.172549, 0.113725, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.945098, 0.956863, 0.866667, 0.18)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.2)
+shadow_size = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_prompt"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.0941176, 0.172549, 0.113725, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85098, 0.92549, 0.439216, 0.58)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.3)
+shadow_size = 7
+
+[node name="GameHud" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="DebugPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -252.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 254.0
+grow_horizontal = 0
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="DebugRows" type="VBoxContainer" parent="DebugPanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Heading" type="Label" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "DEBUG"
+
+[node name="FpsRow" type="HBoxContainer" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+
+[node name="DebugFps" type="Label" parent="DebugPanel/DebugRows/FpsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.78)
+theme_override_font_sizes/font_size = 12
+text = "FPS"
+
+[node name="DebugFpsValue" type="Label" parent="DebugPanel/DebugRows/FpsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="MemoryRow" type="HBoxContainer" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+
+[node name="DebugMemory" type="Label" parent="DebugPanel/DebugRows/MemoryRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.78)
+theme_override_font_sizes/font_size = 12
+text = "RAM"
+
+[node name="DebugMemoryValue" type="Label" parent="DebugPanel/DebugRows/MemoryRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="EntitiesRow" type="HBoxContainer" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+
+[node name="DebugEntities" type="Label" parent="DebugPanel/DebugRows/EntitiesRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.78)
+theme_override_font_sizes/font_size = 12
+text = "Entidades"
+
+[node name="DebugEntitiesValue" type="Label" parent="DebugPanel/DebugRows/EntitiesRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="ObjectsRow" type="HBoxContainer" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+
+[node name="DebugObjects" type="Label" parent="DebugPanel/DebugRows/ObjectsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.78)
+theme_override_font_sizes/font_size = 12
+text = "Objetos"
+
+[node name="DebugObjectsValue" type="Label" parent="DebugPanel/DebugRows/ObjectsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="DebugDetail" type="Label" parent="DebugPanel/DebugRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.52)
+theme_override_font_sizes/font_size = 10
+text = "--"
+
+[node name="DebugParticles" type="Label" parent="DebugPanel/DebugRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.52)
+theme_override_font_sizes/font_size = 10
+text = "--"
+
+[node name="Separator" type="HSeparator" parent="DebugPanel/DebugRows"]
+layout_mode = 2
+
+[node name="MobileToggle" type="CheckButton" parent="DebugPanel/DebugRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.82)
+theme_override_font_sizes/font_size = 11
+text = "Controles móviles"
+
+[node name="InventoryPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 194.0
+offset_bottom = 166.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="InventoryRows" type="VBoxContainer" parent="InventoryPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="InventoryHeading" type="Label" parent="InventoryPanel/InventoryRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 0.9)
+theme_override_font_sizes/font_size = 11
+text = "RECURSOS"
+
+[node name="InventoryList" type="VBoxContainer" parent="InventoryPanel/InventoryRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LocationPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -118.0
+offset_top = 12.0
+offset_right = 118.0
+offset_bottom = 48.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="LocationLabel" type="Label" parent="LocationPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.92)
+theme_override_font_sizes/font_size = 12
+text = "ALDEA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InteractionPrompt" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -82.0
+offset_right = 210.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
+[node name="InteractionLabel" type="Label" parent="InteractionPrompt"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
+theme_override_font_sizes/font_size = 14
+text = "E / ESPACIO  ·  Interactuar"
+horizontal_alignment = 1
+vertical_alignment = 1

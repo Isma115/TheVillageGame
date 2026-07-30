@@ -1,0 +1,129 @@
+[gd_resource type="Resource" script_class="MineDefinition" load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mine_definition.gd" id="1_mine"]
+[ext_resource type="Resource" path="res://data/minerals/coal.tres" id="2_coal"]
+[ext_resource type="Resource" path="res://data/minerals/iron.tres" id="3_iron"]
+[ext_resource type="Resource" path="res://data/minerals/copper.tres" id="4_copper"]
+[ext_resource type="Resource" path="res://data/minerals/gold.tres" id="5_gold"]
+[ext_resource type="Resource" path="res://data/minerals/silver.tres" id="6_silver"]
+[ext_resource type="Script" path="res://scripts/data/mineral_deposit_definition.gd" id="7_deposit"]
+
+[sub_resource type="Resource" id="Deposit_coal_01"]
+script = ExtResource("7_deposit")
+id = &"coal_01"
+mineral = ExtResource("2_coal")
+world_position = Vector2(170, 170)
+visual_scale = 1.06
+
+[sub_resource type="Resource" id="Deposit_coal_02"]
+script = ExtResource("7_deposit")
+id = &"coal_02"
+mineral = ExtResource("2_coal")
+world_position = Vector2(390, 210)
+visual_scale = 0.94
+
+[sub_resource type="Resource" id="Deposit_coal_03"]
+script = ExtResource("7_deposit")
+id = &"coal_03"
+mineral = ExtResource("2_coal")
+world_position = Vector2(1020, 170)
+visual_scale = 1.08
+
+[sub_resource type="Resource" id="Deposit_coal_04"]
+script = ExtResource("7_deposit")
+id = &"coal_04"
+mineral = ExtResource("2_coal")
+world_position = Vector2(1035, 500)
+visual_scale = 0.98
+
+[sub_resource type="Resource" id="Deposit_iron_01"]
+script = ExtResource("7_deposit")
+id = &"iron_01"
+mineral = ExtResource("3_iron")
+world_position = Vector2(175, 520)
+visual_scale = 1.04
+
+[sub_resource type="Resource" id="Deposit_iron_02"]
+script = ExtResource("7_deposit")
+id = &"iron_02"
+mineral = ExtResource("3_iron")
+world_position = Vector2(415, 590)
+visual_scale = 0.96
+
+[sub_resource type="Resource" id="Deposit_iron_03"]
+script = ExtResource("7_deposit")
+id = &"iron_03"
+mineral = ExtResource("3_iron")
+world_position = Vector2(775, 165)
+visual_scale = 1.08
+
+[sub_resource type="Resource" id="Deposit_copper_01"]
+script = ExtResource("7_deposit")
+id = &"copper_01"
+mineral = ExtResource("4_copper")
+world_position = Vector2(430, 300)
+visual_scale = 1.0
+
+[sub_resource type="Resource" id="Deposit_copper_02"]
+script = ExtResource("7_deposit")
+id = &"copper_02"
+mineral = ExtResource("4_copper")
+world_position = Vector2(760, 540)
+visual_scale = 1.05
+
+[sub_resource type="Resource" id="Deposit_copper_03"]
+script = ExtResource("7_deposit")
+id = &"copper_03"
+mineral = ExtResource("4_copper")
+world_position = Vector2(1040, 770)
+visual_scale = 0.94
+
+[sub_resource type="Resource" id="Deposit_silver_01"]
+script = ExtResource("7_deposit")
+id = &"silver_01"
+mineral = ExtResource("6_silver")
+world_position = Vector2(350, 755)
+visual_scale = 1.02
+
+[sub_resource type="Resource" id="Deposit_silver_02"]
+script = ExtResource("7_deposit")
+id = &"silver_02"
+mineral = ExtResource("6_silver")
+world_position = Vector2(855, 755)
+visual_scale = 1.08
+
+[sub_resource type="Resource" id="Deposit_gold_01"]
+script = ExtResource("7_deposit")
+id = &"gold_01"
+mineral = ExtResource("5_gold")
+world_position = Vector2(600, 170)
+visual_scale = 0.92
+
+[sub_resource type="Resource" id="Deposit_gold_02"]
+script = ExtResource("7_deposit")
+id = &"gold_02"
+mineral = ExtResource("5_gold")
+world_position = Vector2(600, 545)
+visual_scale = 1.04
+
+[resource]
+script = ExtResource("1_mine")
+id = &"village_mine"
+area_id = &"village_mine"
+label = "Mina de la aldea"
+interior_size = Vector2(1200, 900)
+wall_inset = 62.0
+player_spawn = Vector2(600, 675)
+interior_obstacles = [Rect2(250, 320, 120, 150), Rect2(815, 260, 135, 165), Rect2(515, 385, 170, 95), Rect2(150, 625, 135, 90), Rect2(900, 615, 145, 95)]
+minerals = [ExtResource("2_coal"), ExtResource("3_iron"), ExtResource("4_copper"), ExtResource("5_gold"), ExtResource("6_silver")]
+deposits = [SubResource("Deposit_coal_01"), SubResource("Deposit_coal_02"), SubResource("Deposit_coal_03"), SubResource("Deposit_coal_04"), SubResource("Deposit_iron_01"), SubResource("Deposit_iron_02"), SubResource("Deposit_iron_03"), SubResource("Deposit_copper_01"), SubResource("Deposit_copper_02"), SubResource("Deposit_copper_03"), SubResource("Deposit_silver_01"), SubResource("Deposit_silver_02"), SubResource("Deposit_gold_01"), SubResource("Deposit_gold_02")]
+random_seed = 18437
+mining_cooldown = 0.34
+base_mining_damage = 1
+void_color = Color(0.0901961, 0.0823529, 0.101961, 1)
+wall_color = Color(0.203922, 0.188235, 0.223529, 1)
+wall_light_color = Color(0.317647, 0.282353, 0.317647, 1)
+floor_color = Color(0.160784, 0.14902, 0.176471, 1)
+floor_light_color = Color(0.219608, 0.2, 0.227451, 1)
+crack_color = Color(0.113725, 0.105882, 0.12549, 1)
+lamp_color = Color(0.952941, 0.72549, 0.309804, 1)

@@ -1,47 +1,32 @@
-# Dependencias instaladas
-node_modules/
+# Motor Godot portátil local al repositorio
+godot-engine/
 
-# Logs y archivos de diagnóstico
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Estado e importaciones generadas por Godot
+game/.godot/
+game/.import/
+game/editor_data/
+game/export_templates/
+game/feature_profiles/
+game/script_templates/
+game/text_editor_themes/
+game/**/*.import
 
-# Cobertura y cachés de herramientas
-coverage/
-.nyc_output/
-.cache/
-.eslintcache
-.parcel-cache/
-.vite/
-
-# Builds y artefactos empaquetados de Electron
-dist/
+# Exportaciones y artefactos de compilación
 build/
+dist/
 out/
 release/
-*.asar
-*.dmg
-*.pkg
-*.deb
-*.rpm
-*.AppImage
+*.apk
+*.aab
+*.pck
 
-# Herramienta Godot portátil local al repositorio
-tools/godot/
-
-# Estado y cachés generados por el proyecto Godot
-godot/.godot/
-godot/editor_data/
-godot/export_templates/
-godot/feature_profiles/
-godot/script_templates/
-godot/text_editor_themes/
-godot/**/*.import
-godot/**/*.uid
+# Cachés de herramientas auxiliares
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+coverage/
+.cache/
 
 # Configuración local y secretos
 .env
@@ -50,6 +35,8 @@ godot/**/*.uid
 *.local
 
 # Archivos temporales
+logs/
+*.log
 tmp/
 temp/
 *.tmp
@@ -57,7 +44,7 @@ temp/
 *.swp
 *.swo
 
-# Configuración del sistema operativo y editores
+# Sistema operativo y editores
 .DS_Store
 .AppleDouble
 .LSOverride

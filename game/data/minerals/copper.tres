@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MineralDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mineral_definition.gd" id="1_mineral"]
+[ext_resource type="Resource" path="res://data/items/copper.tres" id="2_item"]
+
+[resource]
+script = ExtResource("1_mineral")
+id = &"copper"
+label = "cobre"
+yielded_item = ExtResource("2_item")
+rock_color = Color(0.313726, 0.270588, 0.27451, 1)
+rock_dark_color = Color(0.184314, 0.156863, 0.168627, 1)
+ore_color = Color(0.752941, 0.333333, 0.160784, 1)
+ore_light_color = Color(0.968627, 0.615686, 0.294118, 1)
+visual_radius = 35.0
+collision_radius = 22.0
+interaction_distance = 94.0
+max_health = 3
+yield_min = 2
+yield_max = 4

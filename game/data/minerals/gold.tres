@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MineralDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mineral_definition.gd" id="1_mineral"]
+[ext_resource type="Resource" path="res://data/items/gold.tres" id="2_item"]
+
+[resource]
+script = ExtResource("1_mineral")
+id = &"gold"
+label = "oro"
+yielded_item = ExtResource("2_item")
+rock_color = Color(0.305882, 0.278431, 0.282353, 1)
+rock_dark_color = Color(0.176471, 0.160784, 0.172549, 1)
+ore_color = Color(0.815686, 0.552941, 0.0705882, 1)
+ore_light_color = Color(1, 0.843137, 0.309804, 1)
+visual_radius = 36.0
+collision_radius = 23.0
+interaction_distance = 96.0
+max_health = 5
+yield_min = 1
+yield_max = 2

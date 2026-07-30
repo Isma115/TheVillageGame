@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TreeDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tree_definition.gd" id="1_tree"]
+[ext_resource type="Resource" path="res://data/items/wood.tres" id="2_wood"]
+[ext_resource type="Texture2D" path="res://assets/trees/birch.png" id="3_texture"]
+
+[resource]
+script = ExtResource("1_tree")
+id = &"birch"
+label = "abedul"
+visual_style = "broadleaf"
+texture = ExtResource("3_texture")
+sprite_render_size = 138.0
+trunk_color = Color(0.745098, 0.709804, 0.615686, 1)
+trunk_light_color = Color(0.929412, 0.890196, 0.745098, 1)
+canopy_dark_color = Color(0.231373, 0.431373, 0.133333, 1)
+canopy_color = Color(0.431373, 0.65098, 0.211765, 1)
+canopy_light_color = Color(0.67451, 0.819608, 0.317647, 1)
+trunk_size = Vector2(12, 60)
+canopy_radius = 40.0
+collision_radius = 14.0
+interaction_distance = 92.0
+max_health = 3
+yielded_item = ExtResource("2_wood")
+yield_min = 3
+yield_max = 5

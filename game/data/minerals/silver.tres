@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MineralDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mineral_definition.gd" id="1_mineral"]
+[ext_resource type="Resource" path="res://data/items/silver.tres" id="2_item"]
+
+[resource]
+script = ExtResource("1_mineral")
+id = &"silver"
+label = "plata"
+yielded_item = ExtResource("2_item")
+rock_color = Color(0.286275, 0.278431, 0.309804, 1)
+rock_dark_color = Color(0.164706, 0.156863, 0.184314, 1)
+ore_color = Color(0.619608, 0.682353, 0.713726, 1)
+ore_light_color = Color(0.901961, 0.94902, 0.94902, 1)
+visual_radius = 36.0
+collision_radius = 23.0
+interaction_distance = 96.0
+max_health = 4
+yield_min = 1
+yield_max = 3

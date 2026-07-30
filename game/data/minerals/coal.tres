@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MineralDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mineral_definition.gd" id="1_mineral"]
+[ext_resource type="Resource" path="res://data/items/coal.tres" id="2_item"]
+
+[resource]
+script = ExtResource("1_mineral")
+id = &"coal"
+label = "carbón"
+yielded_item = ExtResource("2_item")
+rock_color = Color(0.203922, 0.2, 0.223529, 1)
+rock_dark_color = Color(0.113725, 0.109804, 0.12549, 1)
+ore_color = Color(0.282353, 0.294118, 0.32549, 1)
+ore_light_color = Color(0.482353, 0.505882, 0.545098, 1)
+visual_radius = 34.0
+collision_radius = 21.0
+interaction_distance = 92.0
+max_health = 2
+yield_min = 3
+yield_max = 5

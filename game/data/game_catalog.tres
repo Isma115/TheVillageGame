@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="GameCatalog" load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/game_catalog.gd" id="1_catalog"]
+[ext_resource type="Texture2D" path="res://assets/terrain/grass-texture.png" id="2_grass"]
+[ext_resource type="Texture2D" path="res://assets/terrain/stone-grass-texture.png" id="3_path"]
+[ext_resource type="Resource" path="res://data/routes/main_road.tres" id="4_main"]
+[ext_resource type="Resource" path="res://data/routes/cream_house.tres" id="5_cream_route"]
+[ext_resource type="Resource" path="res://data/routes/wood_house.tres" id="6_wood_route"]
+[ext_resource type="Resource" path="res://data/routes/stone_house.tres" id="7_stone_route"]
+[ext_resource type="Resource" path="res://data/routes/mine_entrance.tres" id="8_mine_route"]
+[ext_resource type="Resource" path="res://data/houses/cream.tres" id="9_cream"]
+[ext_resource type="Resource" path="res://data/houses/wood.tres" id="10_wood"]
+[ext_resource type="Resource" path="res://data/houses/stone.tres" id="11_stone"]
+[ext_resource type="Resource" path="res://data/animals/conejo.tres" id="12_conejo"]
+[ext_resource type="Resource" path="res://data/animals/ciervo.tres" id="13_ciervo"]
+[ext_resource type="Resource" path="res://data/animals/pajaro.tres" id="14_pajaro"]
+[ext_resource type="Resource" path="res://data/animals/jabali.tres" id="15_jabali"]
+[ext_resource type="Resource" path="res://data/items/wood.tres" id="16_wood"]
+[ext_resource type="Resource" path="res://data/items/coal.tres" id="17_coal"]
+[ext_resource type="Resource" path="res://data/items/iron.tres" id="18_iron"]
+[ext_resource type="Resource" path="res://data/items/copper.tres" id="19_copper"]
+[ext_resource type="Resource" path="res://data/items/gold.tres" id="20_gold"]
+[ext_resource type="Resource" path="res://data/items/silver.tres" id="21_silver"]
+[ext_resource type="Resource" path="res://data/forest.tres" id="22_forest"]
+[ext_resource type="Resource" path="res://data/mines/village_mine.tres" id="23_mine"]
+[ext_resource type="Resource" path="res://data/portals/mine_entrance.tres" id="24_entrance"]
+[ext_resource type="Resource" path="res://data/portals/mine_exit.tres" id="25_exit"]
+
+[resource]
+script = ExtResource("1_catalog")
+world_columns = 35
+world_rows = 35
+tile_size = 48.0
+edge_padding = 54.0
+grass_color = Color(0.364706, 0.576471, 0.309804, 1)
+ink_color = Color(0.0980392, 0.215686, 0.141176, 1)
+grass_texture = ExtResource("2_grass")
+path_texture = ExtResource("3_path")
+plaza = Vector2(840, 830)
+path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route")]
+houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone")]
+animals = [ExtResource("12_conejo"), ExtResource("13_ciervo"), ExtResource("14_pajaro"), ExtResource("15_jabali")]
+items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver")]
+forest = ExtResource("22_forest")
+mines = [ExtResource("23_mine")]
+area_portals = [ExtResource("24_entrance"), ExtResource("25_exit")]
+player_radius = 19.0
+player_walk_speed = 270.0
+player_run_speed = 430.0
+player_spawn = Vector2(840, 940)
+camera_follow_strength = 7.2
+camera_zoom = Vector2(1.35, 1.35)

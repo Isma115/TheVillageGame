@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="AnimalDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/animal_definition.gd" id="1_animal"]
+[ext_resource type="Texture2D" path="res://assets/animals/pajaro.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_animal")
+id = &"pajaro"
+label = "Pájaro"
+texture = ExtResource("2_texture")
+world_position = Vector2(620, 790)
+initial_direction = Vector2(1, 0)
+random_seed = 307
+render_width = 50.0
+anchor_y = 0.52
+collision_radius = 10.0
+wander_radius = 45.0
+walking_speed = 74.0
+running_speed = 120.0
+jumping_speed = 96.0
+jump_height = 18.0
+hover_height = 7.0
+grounded = false
+collides_with_world = false
+idle_weight = 2.0
+walking_weight = 3.0
+running_weight = 5.0
+jumping_weight = 2.0
+casts_shadow = false

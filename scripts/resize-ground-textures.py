@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reduce las texturas del terreno conservando el pixel-art."""
+"""Reduce las texturas de terreno de Godot conservando el pixel-art."""
 
 from pathlib import Path
 
@@ -8,8 +8,8 @@ from PIL import Image
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEXTURE_PATHS = (
-    PROJECT_ROOT / "src/renderer/assets/grass-texture.png",
-    PROJECT_ROOT / "src/renderer/assets/stone-grass-texture.png",
+    PROJECT_ROOT / "game/assets/terrain/grass-texture.png",
+    PROJECT_ROOT / "game/assets/terrain/stone-grass-texture.png",
 )
 TARGET_SIZE = (50, 50)
 

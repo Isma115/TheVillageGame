@@ -1,0 +1,83 @@
+[gd_scene load_steps=19 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/game_controller.gd" id="1_game"]
+[ext_resource type="Resource" path="res://data/game_catalog.tres" id="2_catalog"]
+[ext_resource type="Script" path="res://scripts/world/game_world.gd" id="3_world"]
+[ext_resource type="PackedScene" path="res://scenes/actors/house.tscn" id="4_house"]
+[ext_resource type="Script" path="res://scripts/world/interaction_highlight.gd" id="5_highlight"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="6_player"]
+[ext_resource type="Script" path="res://scripts/systems/wildlife.gd" id="7_wildlife"]
+[ext_resource type="PackedScene" path="res://scenes/actors/animal.tscn" id="8_animal"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_hud.tscn" id="9_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/mobile_controls.tscn" id="10_mobile"]
+[ext_resource type="Script" path="res://scripts/systems/interaction_system.gd" id="11_interaction"]
+[ext_resource type="Script" path="res://scripts/systems/forestry_system.gd" id="12_forestry"]
+[ext_resource type="PackedScene" path="res://scenes/actors/tree.tscn" id="13_tree"]
+[ext_resource type="PackedScene" path="res://scenes/world/mine_area.tscn" id="14_mine_area"]
+[ext_resource type="Script" path="res://scripts/systems/world_area_system.gd" id="15_areas"]
+[ext_resource type="PackedScene" path="res://scenes/actors/area_portal.tscn" id="16_portal"]
+[ext_resource type="Script" path="res://scripts/systems/mining_system.gd" id="17_mining"]
+[ext_resource type="PackedScene" path="res://scenes/actors/ore_vein.tscn" id="18_vein"]
+
+[node name="Pradera" type="Node2D"]
+script = ExtResource("1_game")
+catalog = ExtResource("2_catalog")
+mine_area_scene = ExtResource("14_mine_area")
+
+[node name="Areas" type="Node2D" parent="."]
+
+[node name="DynamicAreas" type="Node2D" parent="Areas"]
+unique_name_in_owner = true
+
+[node name="OverworldArea" type="Node2D" parent="Areas"]
+unique_name_in_owner = true
+
+[node name="GameWorld" type="Node2D" parent="Areas/OverworldArea"]
+unique_name_in_owner = true
+script = ExtResource("3_world")
+house_scene = ExtResource("4_house")
+
+[node name="InteractionHighlight" type="Node2D" parent="Areas/OverworldArea"]
+unique_name_in_owner = true
+script = ExtResource("5_highlight")
+
+[node name="OverworldActorLayer" type="Node2D" parent="Areas/OverworldArea"]
+unique_name_in_owner = true
+y_sort_enabled = true
+
+[node name="Player" parent="Areas/OverworldArea/OverworldActorLayer" instance=ExtResource("6_player")]
+unique_name_in_owner = true
+
+[node name="Systems" type="Node" parent="."]
+
+[node name="Wildlife" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("7_wildlife")
+animal_scene = ExtResource("8_animal")
+
+[node name="InteractionSystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("11_interaction")
+
+[node name="WorldAreaSystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("15_areas")
+portal_scene = ExtResource("16_portal")
+
+[node name="ForestrySystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("12_forestry")
+tree_scene = ExtResource("13_tree")
+
+[node name="MiningSystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("17_mining")
+ore_vein_scene = ExtResource("18_vein")
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="GameHud" parent="Interface" instance=ExtResource("9_hud")]
+unique_name_in_owner = true
+
+[node name="MobileControls" parent="Interface" instance=ExtResource("10_mobile")]
+unique_name_in_owner = true

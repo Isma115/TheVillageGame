@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TreeDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tree_definition.gd" id="1_tree"]
+[ext_resource type="Resource" path="res://data/items/wood.tres" id="2_wood"]
+[ext_resource type="Texture2D" path="res://assets/trees/pine.png" id="3_texture"]
+
+[resource]
+script = ExtResource("1_tree")
+id = &"pine"
+label = "pino"
+visual_style = "pine"
+texture = ExtResource("3_texture")
+sprite_render_size = 150.0
+trunk_color = Color(0.34902, 0.235294, 0.141176, 1)
+trunk_light_color = Color(0.501961, 0.352941, 0.196078, 1)
+canopy_dark_color = Color(0.0823529, 0.254902, 0.180392, 1)
+canopy_color = Color(0.12549, 0.380392, 0.235294, 1)
+canopy_light_color = Color(0.247059, 0.54902, 0.294118, 1)
+trunk_size = Vector2(13, 62)
+canopy_radius = 39.0
+collision_radius = 14.0
+interaction_distance = 90.0
+max_health = 4
+yielded_item = ExtResource("2_wood")
+yield_min = 4
+yield_max = 6

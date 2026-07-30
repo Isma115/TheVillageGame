@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ForestDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/forest_definition.gd" id="1_forest"]
+[ext_resource type="Resource" path="res://data/trees/oak.tres" id="2_oak"]
+[ext_resource type="Resource" path="res://data/trees/pine.tres" id="3_pine"]
+[ext_resource type="Resource" path="res://data/trees/birch.tres" id="4_birch"]
+
+[resource]
+script = ExtResource("1_forest")
+random_seed = 7319
+target_tree_count = 96
+max_generation_attempts = 6000
+minimum_spacing = 72.0
+village_clear_radius = 510.0
+path_clearance = 44.0
+house_clearance = 76.0
+player_spawn_clearance = 120.0
+animal_spawn_clearance = 90.0
+world_edge_inset = 26.0
+scale_range = Vector2(0.86, 1.16)
+tree_types = [ExtResource("2_oak"), ExtResource("3_pine"), ExtResource("4_birch")]
+type_weights = PackedFloat32Array(0.5, 0.3, 0.2)
+chop_cooldown = 0.32
+base_chop_damage = 1

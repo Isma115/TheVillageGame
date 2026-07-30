@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AreaPortalDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/area_portal_definition.gd" id="1_portal"]
+[ext_resource type="Texture2D" path="res://assets/mining/mine-entrance.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_portal")
+id = &"mine_entrance"
+label = "Entrar en la mina"
+source_area_id = &"overworld"
+target_area_id = &"village_mine"
+world_position = Vector2(1420, 385)
+target_position = Vector2(600, 675)
+interaction_offset = Vector2(0, -40)
+interaction_distance = 116.0
+priority = 200
+visual_style = "sprite"
+texture = ExtResource("2_texture")
+render_rect = Rect2(-170, -300, 340, 340)
+collision_rect = Rect2(-145, -176, 290, 136)
+accent_color = Color(0.952941, 0.72549, 0.309804, 1)
