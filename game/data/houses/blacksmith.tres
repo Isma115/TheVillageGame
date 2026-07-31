@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="HouseDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/house_definition.gd" id="1_house"]
+[ext_resource type="Texture2D" path="res://assets/houses/house-blacksmith.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_house")
+id = &"blacksmith"
+label = "Herrería de la aldea"
+texture = ExtResource("2_texture")
+world_position = Vector2(540, 540)
+render_size = 360.0
+collision_rect = Rect2(-140, -100, 280, 92)

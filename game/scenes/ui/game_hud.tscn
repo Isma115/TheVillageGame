@@ -1,6 +1,12 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_panel.tscn" id="2_dialogue"]
+[ext_resource type="PackedScene" path="res://scenes/ui/merchant_panel.tscn" id="3_merchant"]
+[ext_resource type="PackedScene" path="res://scenes/ui/doctor_panel.tscn" id="5_doctor"]
+[ext_resource type="Script" path="res://scripts/ui/hunting_cursor.gd" id="4_hunting_cursor"]
+[ext_resource type="PackedScene" path="res://scenes/ui/planting_panel.tscn" id="6_planting"]
+[ext_resource type="PackedScene" path="res://scenes/ui/blacksmith_panel.tscn" id="7_blacksmith"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug"]
 content_margin_left = 10.0
@@ -37,6 +43,18 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.3)
 shadow_size = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_stamina_bar"]
+bg_color = Color(0.172549, 0.560784, 0.831373, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_stamina_maximum_bar"]
+bg_color = Color(0.345098, 0.584314, 0.701961, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_stamina_empty_bar"]
+bg_color = Color(0.0, 0.0, 0.0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_bar_transparent"]
+bg_color = Color(0.0, 0.0, 0.0, 0.0)
 
 [node name="GameHud" type="Control"]
 layout_mode = 3
@@ -203,29 +221,198 @@ theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.82)
 theme_override_font_sizes/font_size = 11
 text = "Controles móviles"
 
-[node name="InventoryPanel" type="PanelContainer" parent="."]
+[node name="VitalsPanel" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
-offset_right = 194.0
-offset_bottom = 166.0
+offset_right = 258.0
+offset_bottom = 62.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
 
+[node name="StaminaRow" type="HBoxContainer" parent="VitalsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StaminaCaption" type="Label" parent="VitalsPanel/StaminaRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.847059, 0.945098, 1)
+theme_override_font_sizes/font_size = 11
+text = "ESTAMINA"
+vertical_alignment = 1
+
+[node name="StaminaBars" type="Control" parent="VitalsPanel/StaminaRow"]
+custom_minimum_size = Vector2(108, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="StaminaEmptyBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBox_stamina_empty_bar")
+theme_override_styles/fill = SubResource("StyleBox_stamina_empty_bar")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaMaximumBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBox_bar_transparent")
+theme_override_styles/fill = SubResource("StyleBox_stamina_maximum_bar")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBox_bar_transparent")
+theme_override_styles/fill = SubResource("StyleBox_stamina_bar")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaValue" type="Label" parent="VitalsPanel/StaminaRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.88)
+theme_override_font_sizes/font_size = 11
+text = "100/100"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ToolPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 110.0
+offset_right = 194.0
+offset_bottom = 154.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="ToolLabel" type="Label" parent="ToolPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.870588, 0.709804, 0.337255, 1)
+theme_override_font_sizes/font_size = 13
+text = "Hacha  50/100"
+tooltip_text = "Pulsa 1, 2, 3... para equipar las herramientas que hayas conseguido"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WalletPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 162.0
+offset_right = 194.0
+offset_bottom = 206.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="WalletLabel" type="Label" parent="WalletPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
+theme_override_font_sizes/font_size = 13
+text = "Monedas  100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InventoryPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -250.0
+offset_right = 210.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
 [node name="InventoryRows" type="VBoxContainer" parent="InventoryPanel"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 8
 
 [node name="InventoryHeading" type="Label" parent="InventoryPanel/InventoryRows"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 0.9)
-theme_override_font_sizes/font_size = 11
-text = "RECURSOS"
+theme_override_font_sizes/font_size = 22
+text = "INVENTARIO"
+horizontal_alignment = 1
+
+[node name="InventoryHint" type="Label" parent="InventoryPanel/InventoryRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.847059, 0.745098, 0.82)
+theme_override_font_sizes/font_size = 12
+text = "Objetos, monedas y herramientas"
+horizontal_alignment = 1
+
+[node name="InventoryWalletLabel" type="Label" parent="InventoryPanel/InventoryRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
+theme_override_font_sizes/font_size = 15
+text = "Monedas  100"
+horizontal_alignment = 1
+
+[node name="InventoryItemsSeparator" type="HSeparator" parent="InventoryPanel/InventoryRows"]
+layout_mode = 2
+
+[node name="InventoryItemsHeading" type="Label" parent="InventoryPanel/InventoryRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.847059, 0.945098, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "OBJETOS"
 
 [node name="InventoryList" type="VBoxContainer" parent="InventoryPanel/InventoryRows"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
+
+[node name="InventoryToolsHeading" type="Label" parent="InventoryPanel/InventoryRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.847059, 0.945098, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "HERRAMIENTAS"
+
+[node name="InventoryToolsList" type="VBoxContainer" parent="InventoryPanel/InventoryRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="InventoryClose" type="Button" parent="InventoryPanel/InventoryRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Cerrar"
 
 [node name="LocationPanel" type="PanelContainer" parent="."]
 layout_mode = 0
@@ -245,6 +432,28 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.92)
 theme_override_font_sizes/font_size = 12
 text = "ALDEA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HuntingHint" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 56.0
+offset_right = 150.0
+offset_bottom = 84.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="HuntingHintLabel" type="Label" parent="HuntingHint"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 11
+text = "MODO CAZA  ·  CLIC PARA DISPARAR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -271,6 +480,32 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 1)
 theme_override_font_sizes/font_size = 14
 text = "E / ESPACIO  ·  Interactuar"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NotificationPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -148.0
+offset_right = 260.0
+offset_bottom = -94.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="NotificationLabel" type="Label" parent="NotificationPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -400,3 +635,42 @@ custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Cancelar"
+
+[node name="DialoguePanel" parent="." instance=ExtResource("2_dialogue")]
+unique_name_in_owner = true
+
+[node name="MerchantPanel" parent="." instance=ExtResource("3_merchant")]
+unique_name_in_owner = true
+
+[node name="DoctorPanel" parent="." instance=ExtResource("5_doctor")]
+unique_name_in_owner = true
+
+[node name="PlantingPanel" parent="." instance=ExtResource("6_planting")]
+unique_name_in_owner = true
+
+[node name="BlacksmithPanel" parent="." instance=ExtResource("7_blacksmith")]
+unique_name_in_owner = true
+
+[node name="HuntingCursor" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_hunting_cursor")
+
+[node name="SleepFade" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+z_index = 1000
+color = Color(0, 0, 0, 0)

@@ -1,13 +1,21 @@
 extends HarvestableActor
 class_name OreVeinActor
 
+const MINERAL_TEXTURE_ATLAS_PATH := "res://assets/mining/mineral-mounds-atlas.png"
+
 var definition: MineralDepositDefinition
 var deposit_index := -1
 var resource_yield := 0
+var _tool_service: ToolService
 var _feedback_tween: Tween
-var _rock_offsets: Array[Vector2] = []
-var _rock_scales := PackedFloat32Array()
-var _ore_offsets: Array[Vector2] = []
+var _mineral_texture_atlas: Texture2D
+
+
+func _ready() -> void:
+	_mineral_texture_atlas = ResourceLoader.load(
+		MINERAL_TEXTURE_ATLAS_PATH,
+		"Texture2D"
+	) as Texture2D
 
 
 func initialize(
@@ -27,24 +35,6 @@ func initialize(
 		definition.mineral.yield_min,
 		definition.mineral.yield_max
 	)
-	_rock_offsets.clear()
-	_rock_scales.clear()
-	_ore_offsets.clear()
-	for _rock_index in range(5):
-		var angle := random_source.randf_range(0.0, TAU)
-		var distance := random_source.randf_range(
-			definition.mineral.visual_radius * 0.08,
-			definition.mineral.visual_radius * 0.48
-		)
-		_rock_offsets.append(Vector2.from_angle(angle) * distance)
-		_rock_scales.append(random_source.randf_range(0.62, 1.0))
-	for _ore_index in range(6):
-		var angle := random_source.randf_range(0.0, TAU)
-		var distance := random_source.randf_range(
-			definition.mineral.visual_radius * 0.12,
-			definition.mineral.visual_radius * 0.60
-		)
-		_ore_offsets.append(Vector2.from_angle(angle) * distance + Vector2.UP * 4.0)
 	queue_redraw()
 
 
@@ -71,6 +61,18 @@ func interaction_priority() -> int:
 
 func interaction_label() -> String:
 	return "Picar %s" % definition.mineral.label
+
+
+func set_tool_service(tool_service: ToolService) -> void:
+	_tool_service = tool_service
+
+
+func can_interact(source: Node2D) -> bool:
+	return (
+		super.can_interact(source)
+		and _tool_service != null
+		and _tool_service.can_use_capability(&"mine")
+	)
 
 
 func apply_mining_hit(damage: int) -> bool:
@@ -135,38 +137,52 @@ func _draw() -> void:
 
 
 func _draw_vein(mineral: MineralDefinition) -> void:
-	draw_circle(Vector2(0.0, 2.0), mineral.visual_radius * 0.82, mineral.rock_dark_color)
-	for index in range(_rock_offsets.size()):
-		var color := mineral.rock_color if index % 2 == 0 else mineral.rock_dark_color
-		draw_circle(
-			_rock_offsets[index],
-			mineral.visual_radius * _rock_scales[index] * 0.52,
-			color
-		)
-
-	for index in range(_ore_offsets.size()):
-		var point := _ore_offsets[index]
-		var size := mineral.visual_radius * (0.16 if index % 2 == 0 else 0.12)
-		var color := mineral.ore_light_color if index < 2 else mineral.ore_color
-		draw_colored_polygon(
-			PackedVector2Array([
-				point + Vector2(0.0, -size),
-				point + Vector2(size * 0.62, 0.0),
-				point + Vector2(0.0, size),
-				point + Vector2(-size * 0.62, 0.0)
-			]),
-			color
-		)
+	var texture_size := Vector2.ONE * mineral.visual_radius * 1.72
+	if _mineral_texture_atlas == null:
+		draw_circle(Vector2(0.0, 2.0), mineral.visual_radius, mineral.ore_color)
+		return
+	draw_texture_rect_region(
+		_mineral_texture_atlas,
+		Rect2(
+			Vector2(-texture_size.x * 0.5, -texture_size.y * 0.5 + 3.0),
+			texture_size
+		),
+		_mineral_texture_region(mineral.id),
+		Color(1.0, 1.0, 1.0, 1.0),
+		false,
+		true
+	)
 
 
 func _draw_rubble(mineral: MineralDefinition) -> void:
-	for index in range(_rock_offsets.size()):
-		var point := Vector2(
-			_rock_offsets[index].x * 1.34,
-			absf(_rock_offsets[index].y) * 0.34 + 5.0
-		)
-		draw_circle(
-			point,
-			mineral.visual_radius * _rock_scales[index] * 0.26,
-			mineral.rock_dark_color.lerp(mineral.rock_color, 0.38)
-		)
+	var texture_size := Vector2.ONE * mineral.visual_radius * 1.08
+	if _mineral_texture_atlas == null:
+		draw_circle(Vector2(0.0, 4.0), mineral.visual_radius * 0.82, Color("#6d6470", 0.82))
+		return
+	draw_texture_rect_region(
+		_mineral_texture_atlas,
+		Rect2(
+			Vector2(-texture_size.x * 0.5, -texture_size.y * 0.5 + 4.0),
+			texture_size
+		),
+		Rect2(1024.0, 512.0, 512.0, 512.0),
+		Color(0.72, 0.68, 0.78, 0.82),
+		false,
+		true
+	)
+
+
+func _mineral_texture_region(mineral_id: StringName) -> Rect2:
+	match mineral_id:
+		&"coal":
+			return Rect2(0.0, 0.0, 512.0, 512.0)
+		&"copper":
+			return Rect2(512.0, 0.0, 512.0, 512.0)
+		&"iron":
+			return Rect2(1024.0, 0.0, 512.0, 512.0)
+		&"gold":
+			return Rect2(0.0, 512.0, 512.0, 512.0)
+		&"silver":
+			return Rect2(512.0, 512.0, 512.0, 512.0)
+		_:
+			return Rect2(1024.0, 512.0, 512.0, 512.0)

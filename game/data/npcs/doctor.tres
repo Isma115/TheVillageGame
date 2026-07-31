@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NpcDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/npc_definition.gd" id="1_npc"]
+[ext_resource type="Resource" path="res://data/doctors/village_doctor.tres" id="2_doctor"]
+
+[resource]
+script = ExtResource("1_npc")
+id = &"doctor"
+display_name = "Elena"
+title = "Médica de Pradera"
+doctor = ExtResource("2_doctor")
+area_id = &"overworld"
+world_position = Vector2(620, 940)
+interaction_distance = 108.0
+collision_rect = Rect2(-15, 13, 30, 20)
+placement_rect = Rect2(-52, -62, 104, 112)
+skin_color = Color(0.85098, 0.627451, 0.435294, 1)
+hair_color = Color(0.211765, 0.258824, 0.282353, 1)
+clothing_color = Color(0.85098, 0.929412, 0.898039, 1)
+accent_color = Color(0.290196, 0.717647, 0.705882, 1)

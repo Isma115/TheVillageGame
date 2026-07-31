@@ -70,6 +70,38 @@ func animal_count(animal_id: StringName = &"") -> int:
 	return int(_population_by_id.get(animal_id, 0))
 
 
+func animal_at_world_position(world_position: Vector2) -> AnimalActor:
+	var closest_animal: AnimalActor
+	var closest_distance := INF
+	for animal in animals:
+		if (
+			not is_instance_valid(animal)
+			or animal.definition == null
+			or not animal.contains_hunting_point(world_position)
+		):
+			continue
+		var distance := world_position.distance_to(animal.hunting_target_position())
+		if distance < closest_distance:
+			closest_animal = animal
+			closest_distance = distance
+	return closest_animal
+
+
+func hunt_animal(animal: AnimalActor) -> bool:
+	if animal == null or not is_instance_valid(animal):
+		return false
+	var index := animals.find(animal)
+	if index < 0:
+		return false
+
+	var animal_id := animal.definition.id if animal.definition != null else &""
+	animals.remove_at(index)
+	if not String(animal_id).is_empty():
+		_population_by_id[animal_id] = maxi(0, animal_count(animal_id) - 1)
+	_animal_removed(animal)
+	return true
+
+
 func population_limits_valid() -> bool:
 	for definition in _definitions:
 		if definition == null:
@@ -218,3 +250,8 @@ func _clear_animals() -> void:
 			animal.queue_free()
 	animals.clear()
 	_population_by_id.clear()
+
+
+func _animal_removed(animal: AnimalActor) -> void:
+	if is_instance_valid(animal):
+		animal.queue_free()

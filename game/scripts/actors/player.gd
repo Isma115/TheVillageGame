@@ -2,6 +2,14 @@ extends Node2D
 class_name PlayerActor
 
 const RUN_CLOUD_DISTANCE := 27.0
+const STAMINA_EXHAUSTION_RECOVERY_RATIO := 0.25
+
+signal vitals_changed(
+	health: float,
+	maximum_health: float,
+	stamina: float,
+	maximum_stamina: float
+)
 
 @export_category("Directional spritesheet")
 @export var sprite_texture: Texture2D
@@ -27,6 +35,11 @@ var run_cloud_distance := 0.0
 var run_cloud_side := 1.0
 var body_style: StyleBoxFlat
 var shirt_style: StyleBoxFlat
+var maximum_health := 100.0
+var health := 100.0
+var maximum_stamina := 100.0
+var stamina := 100.0
+var _stamina_exhausted := false
 
 
 func _ready() -> void:
@@ -41,6 +54,12 @@ func initialize(
 ) -> void:
 	catalog = game_catalog
 	input_state = controls
+	maximum_health = catalog.player_max_health
+	health = maximum_health
+	maximum_stamina = catalog.player_max_stamina
+	stamina = maximum_stamina
+	_stamina_exhausted = false
+	_emit_vitals_changed()
 
 	camera.position = Vector2.ZERO
 	camera.zoom = catalog.camera_zoom
@@ -80,8 +99,14 @@ func update_player(delta: float) -> void:
 
 	var raw_direction := input_state.direction()
 	var direction := raw_direction.normalized() if raw_direction.length_squared() > 0.0 else Vector2.ZERO
-	var sprinting := input_state.sprinting() and direction.length_squared() > 0.0
+	_refresh_stamina_exhaustion_state()
+	var has_direction := direction.length_squared() > 0.0
+	var wants_sprint := input_state.sprinting() and has_direction
+	var sprinting := wants_sprint and can_sprint(delta)
+	var exhausted := wants_sprint and _stamina_exhausted
 	var speed := catalog.player_run_speed if sprinting else catalog.player_walk_speed
+	if exhausted:
+		speed = catalog.player_exhausted_speed
 	var movement := direction * speed * delta
 	var collision_result := collision_world.move_circle(position, movement, catalog.player_radius)
 	var next_position: Vector2 = collision_result["position"]
@@ -95,18 +120,179 @@ func update_player(delta: float) -> void:
 		facing = direction
 		distance_travelled += actual_distance
 		animation_time += delta * (12.0 if sprinting else 8.0)
-		actor_state = &"running" if sprinting else &"walking"
+		if sprinting:
+			actor_state = &"running"
+		elif exhausted:
+			actor_state = &"exhausted"
+		else:
+			actor_state = &"walking"
 	else:
 		velocity = Vector2.ZERO
 		animation_time += delta * 2.2
 		actor_state = &"idle"
 
+	advance_vitals(delta, actor_state == &"running")
 	_update_run_clouds(delta, actor_state == &"running", actual_distance, actual_movement)
 	queue_redraw()
 
 
 func run_cloud_count() -> int:
 	return run_clouds.size()
+
+
+func stop_movement() -> void:
+	velocity = Vector2.ZERO
+	actor_state = &"idle"
+	run_clouds.clear()
+	run_cloud_distance = 0.0
+	if input_state != null:
+		input_state.reset_virtual_controls()
+	queue_redraw()
+
+
+func rest() -> void:
+	if catalog != null:
+		maximum_health = catalog.player_max_health
+		maximum_stamina = catalog.player_max_stamina
+	health = maximum_health
+	stamina = maximum_stamina
+	_stamina_exhausted = false
+	_emit_vitals_changed()
+
+
+func health_ratio() -> float:
+	return clampf(health / maxf(maximum_health, 1.0), 0.0, 1.0)
+
+
+func stamina_ratio() -> float:
+	return clampf(stamina / maxf(maximum_stamina, 1.0), 0.0, 1.0)
+
+
+func can_sprint(_delta: float) -> bool:
+	if catalog == null:
+		return stamina > 0.0
+	if _stamina_exhausted:
+		return false
+	return stamina > 0.0
+
+
+func stamina_exhaustion_threshold() -> float:
+	return maximum_stamina * STAMINA_EXHAUSTION_RECOVERY_RATIO
+
+
+func set_health(value: float) -> void:
+	var next_health := clampf(value, 0.0, maximum_health)
+	if is_equal_approx(next_health, health):
+		return
+	health = next_health
+	_emit_vitals_changed()
+
+
+func damage(amount: float) -> float:
+	if amount > 0.0:
+		set_health(health - amount)
+	return health
+
+
+func heal(amount: float) -> float:
+	if amount > 0.0:
+		set_health(health + amount)
+	return health
+
+
+func snapshot() -> Dictionary:
+	return {
+		"health": health,
+		"maximum_health": maximum_health,
+		"stamina": stamina,
+		"maximum_stamina": maximum_stamina,
+		"stamina_exhausted": _stamina_exhausted
+	}
+
+
+func restore(snapshot_data: Dictionary) -> void:
+	if snapshot_data.is_empty():
+		return
+
+	var health_limit := catalog.player_max_health if catalog != null else maximum_health
+	var stamina_limit := catalog.player_max_stamina if catalog != null else maximum_stamina
+	var stamina_floor := (
+		catalog.player_min_stamina_capacity
+		if catalog != null
+		else 1.0
+	)
+	maximum_health = clampf(
+		float(snapshot_data.get("maximum_health", maximum_health)),
+		1.0,
+		health_limit
+	)
+	health = clampf(
+		float(snapshot_data.get("health", health)),
+		0.0,
+		maximum_health
+	)
+	maximum_stamina = clampf(
+		float(snapshot_data.get("maximum_stamina", maximum_stamina)),
+		stamina_floor,
+		stamina_limit
+	)
+	stamina = clampf(
+		float(snapshot_data.get("stamina", stamina)),
+		0.0,
+		maximum_stamina
+	)
+	_stamina_exhausted = bool(
+		snapshot_data.get("stamina_exhausted", stamina <= 0.0)
+	)
+	if stamina <= 0.0:
+		_stamina_exhausted = true
+	_refresh_stamina_exhaustion_state()
+	_emit_vitals_changed()
+
+
+func advance_vitals(delta: float, running: bool) -> void:
+	if catalog == null or delta <= 0.0:
+		return
+
+	var previous_health := health
+	var previous_maximum_health := maximum_health
+	var previous_stamina := stamina
+	var previous_maximum_stamina := maximum_stamina
+	if running:
+		maximum_stamina = maxf(
+			catalog.player_min_stamina_capacity,
+			maximum_stamina - catalog.stamina_capacity_drain_rate * delta
+		)
+		stamina = maxf(0.0, stamina - catalog.stamina_drain_rate * delta)
+	else:
+		stamina = minf(
+			maximum_stamina,
+			stamina + catalog.stamina_recovery_rate * delta
+		)
+	stamina = minf(stamina, maximum_stamina)
+	_refresh_stamina_exhaustion_state()
+
+	if (
+		not is_equal_approx(previous_health, health)
+		or not is_equal_approx(previous_maximum_health, maximum_health)
+		or not is_equal_approx(previous_stamina, stamina)
+		or not is_equal_approx(previous_maximum_stamina, maximum_stamina)
+	):
+		_emit_vitals_changed()
+
+
+func _refresh_stamina_exhaustion_state() -> void:
+	if stamina <= 0.0:
+		_stamina_exhausted = true
+	elif (
+		_stamina_exhausted
+		and stamina >= stamina_exhaustion_threshold()
+	):
+		_stamina_exhausted = false
+
+
+func _emit_vitals_changed() -> void:
+	vitals_changed.emit(health, maximum_health, stamina, maximum_stamina)
 
 
 func _update_run_clouds(

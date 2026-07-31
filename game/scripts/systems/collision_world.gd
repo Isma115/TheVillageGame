@@ -62,6 +62,21 @@ func obstacle_count() -> int:
 	return obstacles.size()
 
 
+func is_position_blocked(
+	world_position: Vector2,
+	clearance: float = 0.0,
+	ignored_id: StringName = &""
+) -> bool:
+	var safe_clearance := maxf(clearance, 0.0)
+	for obstacle_id in obstacles:
+		if obstacle_id == ignored_id:
+			continue
+		var rectangle: Rect2 = obstacles[obstacle_id]
+		if rectangle.grow(safe_clearance).has_point(world_position):
+			return true
+	return false
+
+
 func move_circle(current_position: Vector2, movement: Vector2, radius: float) -> Dictionary:
 	var next := current_position
 	var distance := movement.length()

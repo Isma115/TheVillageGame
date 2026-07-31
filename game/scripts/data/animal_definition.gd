@@ -53,6 +53,9 @@ class_name AnimalDefinition
 @export var running_duration := Vector2(0.7, 1.6)
 @export var jumping_duration := Vector2(0.8, 1.15)
 
+@export_group("Caza")
+@export_range(1, 99, 1) var hunting_health := 1
+
 
 func speed_for_state(state: StringName) -> float:
 	match state:
@@ -107,6 +110,8 @@ func validate() -> PackedStringArray:
 		errors.append("El animal '%s' tiene una cuadrícula de animación inválida." % id)
 	if collision_radius < 0.0 or wander_radius < 0.0:
 		errors.append("El animal '%s' tiene radios inválidos." % id)
+	if hunting_health <= 0:
+		errors.append("El animal '%s' tiene una salud de caza inválida." % id)
 	if idle_weight + walking_weight + running_weight + jumping_weight <= 0.0:
 		errors.append("El animal '%s' no tiene comportamientos con peso." % id)
 	return errors

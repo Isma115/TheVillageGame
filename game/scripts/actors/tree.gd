@@ -6,6 +6,7 @@ var tree_index := -1
 var visual_scale := 1.0
 var wood_yield := 0
 var is_stump := false
+var _tool_service: ToolService
 var _feedback_tween: Tween
 var _canopy_offsets: Array[Vector2] = []
 var _canopy_scales := PackedFloat32Array()
@@ -67,8 +68,17 @@ func interaction_label() -> String:
 	return "Talar %s" % definition.label
 
 
+func set_tool_service(tool_service: ToolService) -> void:
+	_tool_service = tool_service
+
+
 func can_interact(source: Node2D) -> bool:
-	return not is_stump and super.can_interact(source)
+	return (
+		not is_stump
+		and super.can_interact(source)
+		and _tool_service != null
+		and _tool_service.can_use_capability(&"chop")
+	)
 
 
 func apply_chop(damage: int) -> bool:

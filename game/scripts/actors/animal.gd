@@ -14,6 +14,7 @@ var animation_time := 0.15
 var behavior_time := 0.0
 var behavior_duration := 3.0
 var random_source := RandomNumberGenerator.new()
+var hunting_health := 1
 
 
 func initialize(
@@ -31,9 +32,38 @@ func initialize(
 	facing = definition.initial_direction.normalized()
 	if facing.is_zero_approx():
 		facing = Vector2.RIGHT
+	hunting_health = definition.hunting_health
 	random_source.seed = definition.random_seed
 	_choose_behavior()
 	queue_redraw()
+
+
+func hunting_target_position() -> Vector2:
+	if definition == null:
+		return global_position
+	var frame_size := Vector2(definition.frame_size)
+	var draw_height := definition.render_width * frame_size.y / maxf(frame_size.x, 1.0)
+	return global_position + Vector2(0.0, -draw_height * 0.36)
+
+
+func hunting_hit_radius() -> float:
+	if definition == null:
+		return 16.0
+	return maxf(
+		definition.collision_radius * 1.25,
+		definition.render_width * 0.42
+	)
+
+
+func contains_hunting_point(world_point: Vector2) -> bool:
+	return world_point.distance_to(hunting_target_position()) <= hunting_hit_radius()
+
+
+func take_hunting_damage(damage: int = 1) -> bool:
+	if definition == null or damage <= 0 or hunting_health <= 0:
+		return false
+	hunting_health = maxi(0, hunting_health - damage)
+	return hunting_health <= 0
 
 
 func update_animal(delta: float) -> void:

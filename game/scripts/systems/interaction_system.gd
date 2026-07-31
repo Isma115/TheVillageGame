@@ -17,13 +17,30 @@ var _refresh_elapsed := 0.0
 var _last_prompt := ""
 var _last_prompt_available := false
 var _active_area_id: StringName = &"overworld"
+var _enabled := true
 
 
 func initialize(source: Node2D, controls: InputState) -> void:
 	_source = source
 	_input_state = controls
+	_enabled = true
 	_refresh_elapsed = refresh_interval
 	_refresh_target()
+
+
+func set_enabled(enabled: bool) -> void:
+	if _enabled == enabled:
+		return
+	_enabled = enabled
+	_refresh_elapsed = refresh_interval
+	if _enabled:
+		_refresh_target()
+	else:
+		_set_current(null)
+
+
+func is_enabled() -> bool:
+	return _enabled
 
 
 func set_active_area(area_id: StringName) -> void:
@@ -41,7 +58,7 @@ func active_area_id() -> StringName:
 
 
 func update_interactions(delta: float) -> void:
-	if _source == null or _input_state == null:
+	if not _enabled or _source == null or _input_state == null:
 		return
 
 	_refresh_elapsed += delta
@@ -125,7 +142,7 @@ func _refresh_target() -> void:
 
 
 func _find_best_candidate() -> InteractableActor:
-	if _source == null:
+	if not _enabled or _source == null:
 		return null
 
 	var origin := _source.global_position
@@ -201,6 +218,8 @@ func _emit_prompt_for_current() -> void:
 
 func _is_current_valid() -> bool:
 	return (
+		_enabled
+		and
 		is_instance_valid(_current)
 		and _source != null
 		and _current.interaction_area_id() == _active_area_id

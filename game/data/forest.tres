@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="ForestDefinition" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="ForestDefinition" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/forest_definition.gd" id="1_forest"]
 [ext_resource type="Resource" path="res://data/trees/oak.tres" id="2_oak"]
 [ext_resource type="Resource" path="res://data/trees/pine.tres" id="3_pine"]
 [ext_resource type="Resource" path="res://data/trees/birch.tres" id="4_birch"]
+[ext_resource type="Resource" path="res://data/items/apple.tres" id="5_apple"]
 
 [resource]
 script = ExtResource("1_forest")
@@ -22,3 +23,5 @@ tree_types = [ExtResource("2_oak"), ExtResource("3_pine"), ExtResource("4_birch"
 type_weights = PackedFloat32Array(0.5, 0.3, 0.2)
 chop_cooldown = 0.32
 base_chop_damage = 1
+apple_item = ExtResource("5_apple")
+apple_drop_chance = 0.1

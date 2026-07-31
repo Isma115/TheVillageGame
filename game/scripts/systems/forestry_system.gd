@@ -7,6 +7,8 @@ signal tree_felled(tree: TreeActor, item: ItemDefinition, amount: int)
 
 var trees: Array[TreeActor] = []
 var _active_tree_count := 0
+var _base_tree_count := 0
+var _next_tree_index := 0
 var _forest: ForestDefinition
 var _catalog: GameCatalog
 var _world: GameWorld
@@ -14,7 +16,9 @@ var _actor_layer: Node2D
 var _collision_world: CollisionWorld
 var _interaction_system: InteractionSystem
 var _inventory: InventoryService
+var _tool_service: ToolService
 var _random_source := RandomNumberGenerator.new()
+var _apple_drop_random_source := RandomNumberGenerator.new()
 var _action_cooldown := ActionCooldown.new()
 
 
@@ -25,7 +29,8 @@ func initialize(
 	actor_layer: Node2D,
 	collision_world: CollisionWorld,
 	interaction_system: InteractionSystem,
-	inventory: InventoryService
+	inventory: InventoryService,
+	tool_service: ToolService = null
 ) -> void:
 	_clear_trees()
 	_forest = forest_definition
@@ -35,6 +40,7 @@ func initialize(
 	_collision_world = collision_world
 	_interaction_system = interaction_system
 	_inventory = inventory
+	_tool_service = tool_service
 	_action_cooldown.reset()
 
 	if tree_scene == null:
@@ -45,7 +51,10 @@ func initialize(
 		return
 
 	_random_source.seed = _forest.random_seed
+	_apple_drop_random_source.randomize()
 	_generate_forest()
+	_base_tree_count = trees.size()
+	_next_tree_index = _base_tree_count
 
 
 func tree_count() -> int:
@@ -60,6 +69,14 @@ func stump_count() -> int:
 	return tree_count() - active_tree_count()
 
 
+func planted_tree_count() -> int:
+	var count := 0
+	for tree in trees:
+		if is_instance_valid(tree) and tree.tree_index >= _base_tree_count:
+			count += 1
+	return count
+
+
 func snapshot() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for tree in trees:
@@ -69,7 +86,12 @@ func snapshot() -> Array[Dictionary]:
 			"index": tree.tree_index,
 			"health": tree.current_health,
 			"depleted": tree.harvest_depleted,
-			"stump": tree.is_stump
+			"stump": tree.is_stump,
+			"position_x": tree.global_position.x,
+			"position_y": tree.global_position.y,
+			"definition_id": String(tree.definition.id),
+			"visual_scale": tree.visual_scale,
+			"planted": tree.tree_index >= _base_tree_count
 		})
 	return result
 
@@ -79,7 +101,34 @@ func restore(snapshot_data: Array) -> void:
 	for value in snapshot_data:
 		if value is Dictionary:
 			var state := value as Dictionary
-			saved_by_index[int(state.get("index", -1))] = state
+			var index := int(state.get("index", -1))
+			if index >= 0:
+				saved_by_index[index] = state
+
+	for index in saved_by_index:
+		var state := saved_by_index[index] as Dictionary
+		var tree_index := int(index)
+		if tree_index < _base_tree_count or _tree_for_index(tree_index) != null:
+			continue
+		if not bool(state.get("planted", true)):
+			continue
+
+		var definition := _tree_definition_for(
+			StringName(str(state.get("definition_id", "")))
+		)
+		if definition == null:
+			push_warning(
+				"No se pudo restaurar el árbol plantado %d: especie desconocida."
+				% tree_index
+			)
+			continue
+		var position := Vector2(
+			float(state.get("position_x", 0.0)),
+			float(state.get("position_y", 0.0))
+		)
+		var scale_value := float(state.get("visual_scale", 1.0))
+		_spawn_tree(definition, position, scale_value, tree_index)
+		_next_tree_index = maxi(_next_tree_index, tree_index + 1)
 
 	_active_tree_count = 0
 	for tree in trees:
@@ -109,6 +158,35 @@ func restore(snapshot_data: Array) -> void:
 			_collision_world.unregister_obstacle(tree.collision_key())
 			_interaction_system.unregister_interactable(tree)
 		tree.queue_redraw()
+
+
+func spawn_planted_tree(world_position: Vector2) -> TreeActor:
+	if _forest == null or _actor_layer == null:
+		return null
+	var definition := _choose_tree_definition()
+	if definition == null:
+		return null
+	var scale_value := _random_source.randf_range(
+		_forest.scale_range.x,
+		_forest.scale_range.y
+	)
+	var tree_index := _next_tree_index
+	_next_tree_index += 1
+	return _spawn_tree(definition, world_position, scale_value, tree_index)
+
+
+func remove_tree(tree: TreeActor) -> bool:
+	if tree == null or not trees.has(tree):
+		return false
+	var was_active := not tree.harvest_depleted and not tree.is_stump
+	_collision_world.unregister_obstacle(tree.collision_key())
+	_interaction_system.unregister_interactable(tree)
+	trees.erase(tree)
+	if was_active:
+		_active_tree_count = maxi(0, _active_tree_count - 1)
+	if is_instance_valid(tree):
+		tree.queue_free()
+	return true
 
 
 func _generate_forest() -> void:
@@ -216,11 +294,11 @@ func _spawn_tree(
 	world_position: Vector2,
 	scale_value: float,
 	index: int
-) -> void:
+) -> TreeActor:
 	var tree := tree_scene.instantiate() as TreeActor
 	if tree == null:
 		push_error("La escena de árbol no crea un TreeActor.")
-		return
+		return null
 
 	tree.initialize(
 		definition,
@@ -229,20 +307,29 @@ func _spawn_tree(
 		_forest.random_seed + index * 7919,
 		index
 	)
+	tree.set_tool_service(_tool_service)
 	_actor_layer.add_child(tree)
 	tree.interaction_requested.connect(_on_tree_interaction_requested)
 	_collision_world.register_obstacle(tree.collision_key(), tree.collision_rectangle())
 	_interaction_system.register_interactable(tree)
 	trees.append(tree)
 	_active_tree_count += 1
+	return tree
 
 
 func _on_tree_interaction_requested(target: Node2D, source: Node2D) -> void:
 	var tree := target as TreeActor
 	if tree == null or not tree.can_interact(source):
 		return
+	if _tool_service == null:
+		return
+	if not _tool_service.can_use_capability(&"chop"):
+		return
 
 	if not _action_cooldown.try_start(_forest.chop_cooldown):
+		return
+
+	if _tool_service.try_use_capability(&"chop") == null:
 		return
 
 	if not tree.apply_chop(_forest.base_chop_damage):
@@ -254,9 +341,21 @@ func _on_tree_interaction_requested(target: Node2D, source: Node2D) -> void:
 		tree.definition.yielded_item,
 		tree.wood_yield
 	)
+	_try_drop_apple()
 	_active_tree_count = maxi(0, _active_tree_count - 1)
 	tree.play_fall(source.global_position)
 	tree_felled.emit(tree, tree.definition.yielded_item, amount_added)
+
+
+func _try_drop_apple() -> int:
+	if (
+		_forest == null
+		or _inventory == null
+		or _forest.apple_item == null
+		or _apple_drop_random_source.randf() >= _forest.apple_drop_chance
+	):
+		return 0
+	return _inventory.add_item(_forest.apple_item, 1)
 
 
 func _clear_trees() -> void:
@@ -270,3 +369,21 @@ func _clear_trees() -> void:
 		tree.queue_free()
 	trees.clear()
 	_active_tree_count = 0
+	_base_tree_count = 0
+	_next_tree_index = 0
+
+
+func _tree_for_index(index: int) -> TreeActor:
+	for tree in trees:
+		if is_instance_valid(tree) and tree.tree_index == index:
+			return tree
+	return null
+
+
+func _tree_definition_for(definition_id: StringName) -> TreeDefinition:
+	if _forest == null:
+		return null
+	for definition in _forest.tree_definitions():
+		if definition.id == definition_id:
+			return definition
+	return null

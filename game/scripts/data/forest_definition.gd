@@ -21,6 +21,8 @@ class_name ForestDefinition
 @export_group("Tala")
 @export_range(0.0, 10.0, 0.01) var chop_cooldown := 0.32
 @export_range(1, 1000, 1) var base_chop_damage := 1
+@export var apple_item: ItemDefinition
+@export_range(0.0, 1.0, 0.01) var apple_drop_chance := 0.10
 
 
 func tree_definitions() -> Array[TreeDefinition]:
@@ -49,6 +51,10 @@ func validate() -> PackedStringArray:
 		errors.append("Los pesos de especies no coinciden con las especies del bosque.")
 	if base_chop_damage <= 0 or chop_cooldown < 0.0:
 		errors.append("La configuración de tala es inválida.")
+	if apple_drop_chance < 0.0 or apple_drop_chance > 1.0:
+		errors.append("La probabilidad de manzana debe estar entre 0 y 1.")
+	if apple_drop_chance > 0.0 and apple_item == null:
+		errors.append("El bosque no tiene configurada la manzana como recompensa.")
 
 	for definition in tree_definitions():
 		errors.append_array(definition.validate())

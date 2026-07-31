@@ -1,9 +1,19 @@
 extends Node2D
 class_name MineWorld
 
+const MINE_ROCK_TEXTURE_PATH := "res://assets/mining/mine-rock-texture.png"
 const FLOOR_TILE_SIZE := 48.0
+const ROCK_BORDER_WIDTH := 40.0
 
 var definition: MineDefinition
+var _mine_rock_texture: Texture2D
+
+
+func _ready() -> void:
+	_mine_rock_texture = ResourceLoader.load(
+		MINE_ROCK_TEXTURE_PATH,
+		"Texture2D"
+	) as Texture2D
 
 
 func initialize(mine_definition: MineDefinition) -> void:
@@ -29,9 +39,7 @@ func _draw() -> void:
 		return
 
 	draw_rect(definition.world_rect(), definition.void_color)
-	draw_rect(definition.playable_bounds(), definition.floor_color)
-	_draw_floor_details()
-	_draw_wall_border()
+	_draw_rock_surfaces()
 	for index in range(definition.interior_obstacles.size()):
 		_draw_boulder_field(definition.interior_obstacles[index], index)
 	_draw_wall_lamp(Vector2(definition.wall_inset * 0.62, definition.interior_size.y * 0.50))
@@ -41,6 +49,29 @@ func _draw() -> void:
 			definition.interior_size.y * 0.50
 		)
 	)
+
+
+func _draw_rock_surfaces() -> void:
+	var bounds := definition.playable_bounds()
+	var rock_border := bounds.grow(ROCK_BORDER_WIDTH)
+	if _mine_rock_texture != null:
+		draw_texture_rect(
+			_mine_rock_texture,
+			rock_border,
+			true,
+			Color(0.62, 0.58, 0.68, 1.0)
+		)
+	else:
+		draw_rect(rock_border, Color("#514d5b"))
+	draw_rect(bounds, definition.floor_color)
+	if _mine_rock_texture != null:
+		draw_texture_rect(
+			_mine_rock_texture,
+			bounds,
+			true,
+			Color(1.0, 1.0, 1.0, 0.16)
+		)
+	_draw_floor_details()
 
 
 func _draw_floor_details() -> void:
@@ -59,80 +90,41 @@ func _draw_floor_details() -> void:
 			if not bounds.has_point(center):
 				continue
 			var variation := _hash_2d(tile_x, tile_y)
-			if variation > 0.42:
-				var radius := 1.4 + variation * 2.2
+			if variation > 0.62:
 				draw_circle(
 					center + Vector2(
 						_hash_2d(tile_x + 19, tile_y) * 18.0 - 9.0,
 						_hash_2d(tile_x, tile_y + 23) * 18.0 - 9.0
 					),
-					radius,
-					Color(definition.floor_light_color, 0.34)
+					1.2 + variation * 1.6,
+					Color(definition.floor_light_color, 0.26)
 				)
-			if variation < 0.16:
-				var crack_start := center + Vector2(-9.0, 2.0)
+			if variation < 0.12:
+				var crack_start := center + Vector2(-7.0, 2.0)
 				draw_polyline(
 					PackedVector2Array([
 						crack_start,
-						crack_start + Vector2(7.0, -3.0),
-						crack_start + Vector2(13.0, 3.0)
+						crack_start + Vector2(6.0, -2.0),
+						crack_start + Vector2(11.0, 2.0)
 					]),
-					Color(definition.crack_color, 0.66),
-					2.0,
+					Color(definition.crack_color, 0.48),
+					1.5,
 					true
 				)
 
 
-func _draw_wall_border() -> void:
-	var bounds := definition.playable_bounds()
-	var spacing := 42.0
-	var horizontal_count := ceili(bounds.size.x / spacing)
-	var vertical_count := ceili(bounds.size.y / spacing)
-
-	for index in range(horizontal_count + 1):
-		var x := bounds.position.x + minf(index * spacing, bounds.size.x)
-		_draw_wall_rock(Vector2(x, bounds.position.y - 18.0), index)
-		_draw_wall_rock(Vector2(x, bounds.end.y + 18.0), index + 500)
-	for index in range(vertical_count + 1):
-		var y := bounds.position.y + minf(index * spacing, bounds.size.y)
-		_draw_wall_rock(Vector2(bounds.position.x - 18.0, y), index + 1000)
-		_draw_wall_rock(Vector2(bounds.end.x + 18.0, y), index + 1500)
-
-
-func _draw_wall_rock(center: Vector2, seed_value: int) -> void:
-	var width := 27.0 + _hash_2d(seed_value, 3) * 15.0
-	var height := 22.0 + _hash_2d(seed_value, 7) * 13.0
-	draw_set_transform(center, 0.0, Vector2(width, height))
-	draw_circle(Vector2.ZERO, 1.0, definition.wall_color)
-	draw_circle(
-		Vector2(-0.18, -0.18),
-		0.52,
-		Color(definition.wall_light_color, 0.66)
-	)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _draw_boulder_field(rectangle: Rect2, seed_value: int) -> void:
-	draw_rect(rectangle, Color(definition.wall_color, 0.92))
-	var columns := maxi(2, ceili(rectangle.size.x / 44.0))
-	var rows := maxi(2, ceili(rectangle.size.y / 40.0))
-	for row in range(rows):
-		for column in range(columns):
-			var center := Vector2(
-				rectangle.position.x + (float(column) + 0.5) * rectangle.size.x / columns,
-				rectangle.position.y + (float(row) + 0.5) * rectangle.size.y / rows
-			)
-			center += Vector2(
-				_hash_2d(seed_value + column, row + 31) * 12.0 - 6.0,
-				_hash_2d(seed_value + row, column + 47) * 10.0 - 5.0
-			)
-			var radius := minf(rectangle.size.x / columns, rectangle.size.y / rows) * 0.55
-			draw_circle(center, radius, definition.wall_color)
-			draw_circle(
-				center + Vector2(-radius * 0.22, -radius * 0.24),
-				radius * 0.48,
-				Color(definition.wall_light_color, 0.72)
-			)
+func _draw_boulder_field(rectangle: Rect2, _seed_value: int) -> void:
+	var shadow_rectangle := rectangle.grow(4.0)
+	draw_rect(shadow_rectangle, Color(definition.crack_color, 0.72))
+	if _mine_rock_texture != null:
+		draw_texture_rect(
+			_mine_rock_texture,
+			rectangle,
+			true,
+			Color(0.68, 0.64, 0.74, 0.92)
+		)
+	else:
+		draw_rect(rectangle, Color("#746b7a"))
 
 
 func _draw_wall_lamp(center: Vector2) -> void:

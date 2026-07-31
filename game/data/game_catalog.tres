@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="GameCatalog" load_steps=26 format=3]
+[gd_resource type="Resource" script_class="GameCatalog" load_steps=47 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/game_catalog.gd" id="1_catalog"]
 [ext_resource type="Texture2D" path="res://assets/terrain/grass-texture.png" id="2_grass"]
@@ -8,9 +8,11 @@
 [ext_resource type="Resource" path="res://data/routes/wood_house.tres" id="6_wood_route"]
 [ext_resource type="Resource" path="res://data/routes/stone_house.tres" id="7_stone_route"]
 [ext_resource type="Resource" path="res://data/routes/mine_entrance.tres" id="8_mine_route"]
+[ext_resource type="Resource" path="res://data/routes/blacksmith_house.tres" id="39_blacksmith_route"]
 [ext_resource type="Resource" path="res://data/houses/cream.tres" id="9_cream"]
 [ext_resource type="Resource" path="res://data/houses/wood.tres" id="10_wood"]
 [ext_resource type="Resource" path="res://data/houses/stone.tres" id="11_stone"]
+[ext_resource type="Resource" path="res://data/houses/blacksmith.tres" id="40_blacksmith_house"]
 [ext_resource type="Resource" path="res://data/animals/conejo.tres" id="12_conejo"]
 [ext_resource type="Resource" path="res://data/animals/ciervo.tres" id="13_ciervo"]
 [ext_resource type="Resource" path="res://data/animals/pajaro.tres" id="14_pajaro"]
@@ -21,10 +23,29 @@
 [ext_resource type="Resource" path="res://data/items/copper.tres" id="19_copper"]
 [ext_resource type="Resource" path="res://data/items/gold.tres" id="20_gold"]
 [ext_resource type="Resource" path="res://data/items/silver.tres" id="21_silver"]
+[ext_resource type="Resource" path="res://data/items/arrows.tres" id="31_arrows"]
+[ext_resource type="Resource" path="res://data/items/meat.tres" id="32_meat"]
+[ext_resource type="Resource" path="res://data/items/tree_seed.tres" id="34_tree_seed"]
+[ext_resource type="Resource" path="res://data/items/apple.tres" id="38_apple"]
+[ext_resource type="Resource" path="res://data/items/tomato_seed.tres" id="41_tomato_seed"]
+[ext_resource type="Resource" path="res://data/items/wheat_seed.tres" id="42_wheat_seed"]
+[ext_resource type="Resource" path="res://data/items/carrot_seed.tres" id="43_carrot_seed"]
+[ext_resource type="Resource" path="res://data/crops/tomato.tres" id="44_tomato_crop"]
+[ext_resource type="Resource" path="res://data/crops/wheat.tres" id="45_wheat_crop"]
+[ext_resource type="Resource" path="res://data/crops/carrot.tres" id="46_carrot_crop"]
+[ext_resource type="Resource" path="res://data/tools/axe.tres" id="27_axe"]
+[ext_resource type="Resource" path="res://data/tools/pickaxe.tres" id="28_pickaxe"]
+[ext_resource type="Resource" path="res://data/tools/bow.tres" id="29_bow"]
 [ext_resource type="Resource" path="res://data/forest.tres" id="22_forest"]
 [ext_resource type="Resource" path="res://data/mines/village_mine.tres" id="23_mine"]
 [ext_resource type="Resource" path="res://data/portals/mine_entrance.tres" id="24_entrance"]
 [ext_resource type="Resource" path="res://data/portals/mine_exit.tres" id="25_exit"]
+[ext_resource type="Resource" path="res://data/npcs/aldara.tres" id="26_aldara"]
+[ext_resource type="Resource" path="res://data/npcs/merchant.tres" id="30_merchant_npc"]
+[ext_resource type="Resource" path="res://data/npcs/doctor.tres" id="33_doctor_npc"]
+[ext_resource type="Resource" path="res://data/hotel.tres" id="35_hotel"]
+[ext_resource type="Resource" path="res://data/portals/hotel_entrance.tres" id="36_hotel_entrance"]
+[ext_resource type="Resource" path="res://data/portals/hotel_exit.tres" id="37_hotel_exit"]
 
 [resource]
 script = ExtResource("1_catalog")
@@ -37,16 +58,30 @@ ink_color = Color(0.0980392, 0.215686, 0.141176, 1)
 grass_texture = ExtResource("2_grass")
 path_texture = ExtResource("3_path")
 plaza = Vector2(840, 830)
-path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route")]
-houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone")]
+path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route"), ExtResource("39_blacksmith_route")]
+houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone"), ExtResource("40_blacksmith_house")]
 animals = [ExtResource("12_conejo"), ExtResource("13_ciervo"), ExtResource("14_pajaro"), ExtResource("15_jabali")]
-items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver")]
+items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed")]
+crops = [ExtResource("44_tomato_crop"), ExtResource("45_wheat_crop"), ExtResource("46_carrot_crop")]
+tools = [ExtResource("27_axe"), ExtResource("28_pickaxe"), ExtResource("29_bow")]
 forest = ExtResource("22_forest")
+hotel = ExtResource("35_hotel")
 mines = [ExtResource("23_mine")]
-area_portals = [ExtResource("24_entrance"), ExtResource("25_exit")]
+area_portals = [ExtResource("24_entrance"), ExtResource("25_exit"), ExtResource("36_hotel_entrance"), ExtResource("37_hotel_exit")]
+npcs = [ExtResource("26_aldara"), ExtResource("30_merchant_npc"), ExtResource("33_doctor_npc")]
 player_radius = 19.0
 player_walk_speed = 170.0
 player_run_speed = 270.0
+player_exhausted_speed = 60.0
 player_spawn = Vector2(840, 940)
+default_tool_id = &"axe"
+player_max_health = 100.0
+player_max_stamina = 100.0
+player_min_stamina_capacity = 20.0
+stamina_drain_rate = 16.0
+stamina_capacity_drain_rate = 0.1
+stamina_recovery_rate = 20.0
+starting_coins = 100
+tree_seed_growth_time = 60.0
 camera_follow_strength = 7.2
 camera_zoom = Vector2(1.35, 1.35)

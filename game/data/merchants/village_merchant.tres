@@ -1,0 +1,123 @@
+[gd_resource type="Resource" script_class="MerchantDefinition" load_steps=30 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/merchant_definition.gd" id="1_merchant"]
+[ext_resource type="Script" path="res://scripts/data/merchant_offer.gd" id="2_offer"]
+[ext_resource type="Resource" path="res://data/items/wood.tres" id="3_wood"]
+[ext_resource type="Resource" path="res://data/items/coal.tres" id="4_coal"]
+[ext_resource type="Resource" path="res://data/items/copper.tres" id="5_copper"]
+[ext_resource type="Resource" path="res://data/items/iron.tres" id="6_iron"]
+[ext_resource type="Resource" path="res://data/items/silver.tres" id="7_silver"]
+[ext_resource type="Resource" path="res://data/items/gold.tres" id="8_gold"]
+[ext_resource type="Resource" path="res://data/tools/axe.tres" id="9_axe"]
+[ext_resource type="Resource" path="res://data/tools/pickaxe.tres" id="10_pickaxe"]
+[ext_resource type="Resource" path="res://data/items/arrows.tres" id="11_arrows"]
+[ext_resource type="Resource" path="res://data/tools/bow.tres" id="12_bow"]
+[ext_resource type="Resource" path="res://data/items/tree_seed.tres" id="13_tree_seed"]
+[ext_resource type="Resource" path="res://data/items/tomato_seed.tres" id="14_tomato_seed"]
+[ext_resource type="Resource" path="res://data/items/wheat_seed.tres" id="15_wheat_seed"]
+[ext_resource type="Resource" path="res://data/items/carrot_seed.tres" id="16_carrot_seed"]
+
+[sub_resource type="Resource" id="MerchantOffer_wood"]
+script = ExtResource("2_offer")
+id = &"wood"
+label = "Madera"
+item = ExtResource("3_wood")
+buy_price = 2
+
+[sub_resource type="Resource" id="MerchantOffer_coal"]
+script = ExtResource("2_offer")
+id = &"coal"
+label = "Carbón"
+item = ExtResource("4_coal")
+sell_price = 6
+
+[sub_resource type="Resource" id="MerchantOffer_copper"]
+script = ExtResource("2_offer")
+id = &"copper"
+label = "Cobre"
+item = ExtResource("5_copper")
+sell_price = 10
+
+[sub_resource type="Resource" id="MerchantOffer_iron"]
+script = ExtResource("2_offer")
+id = &"iron"
+label = "Hierro"
+item = ExtResource("6_iron")
+sell_price = 14
+
+[sub_resource type="Resource" id="MerchantOffer_silver"]
+script = ExtResource("2_offer")
+id = &"silver"
+label = "Plata"
+item = ExtResource("7_silver")
+sell_price = 22
+
+[sub_resource type="Resource" id="MerchantOffer_gold"]
+script = ExtResource("2_offer")
+id = &"gold"
+label = "Oro"
+item = ExtResource("8_gold")
+sell_price = 35
+
+[sub_resource type="Resource" id="MerchantOffer_axe"]
+script = ExtResource("2_offer")
+id = &"axe"
+label = "Hacha"
+tool = ExtResource("9_axe")
+sell_price = 80
+
+[sub_resource type="Resource" id="MerchantOffer_pickaxe"]
+script = ExtResource("2_offer")
+id = &"pickaxe"
+label = "Pico"
+tool = ExtResource("10_pickaxe")
+sell_price = 70
+
+[sub_resource type="Resource" id="MerchantOffer_arrows"]
+script = ExtResource("2_offer")
+id = &"arrows"
+label = "Flechas"
+item = ExtResource("11_arrows")
+sell_price = 12
+transaction_quantity = 10
+
+[sub_resource type="Resource" id="MerchantOffer_bow"]
+script = ExtResource("2_offer")
+id = &"bow"
+label = "Arco"
+tool = ExtResource("12_bow")
+sell_price = 90
+
+[sub_resource type="Resource" id="MerchantOffer_tree_seed"]
+script = ExtResource("2_offer")
+id = &"tree_seed"
+label = "Semilla de árbol"
+item = ExtResource("13_tree_seed")
+sell_price = 8
+
+[sub_resource type="Resource" id="MerchantOffer_tomato_seed"]
+script = ExtResource("2_offer")
+id = &"tomato_seed"
+label = "Semillas de tomate"
+item = ExtResource("14_tomato_seed")
+sell_price = 6
+
+[sub_resource type="Resource" id="MerchantOffer_wheat_seed"]
+script = ExtResource("2_offer")
+id = &"wheat_seed"
+label = "Semillas de trigo"
+item = ExtResource("15_wheat_seed")
+sell_price = 6
+
+[sub_resource type="Resource" id="MerchantOffer_carrot_seed"]
+script = ExtResource("2_offer")
+id = &"carrot_seed"
+label = "Semillas de zanahoria"
+item = ExtResource("16_carrot_seed")
+sell_price = 6
+
+[resource]
+script = ExtResource("1_merchant")
+id = &"village_merchant"
+display_name = "Mercader de Pradera"
+offers = [SubResource("MerchantOffer_wood"), SubResource("MerchantOffer_coal"), SubResource("MerchantOffer_copper"), SubResource("MerchantOffer_iron"), SubResource("MerchantOffer_silver"), SubResource("MerchantOffer_gold"), SubResource("MerchantOffer_axe"), SubResource("MerchantOffer_pickaxe"), SubResource("MerchantOffer_arrows"), SubResource("MerchantOffer_bow"), SubResource("MerchantOffer_tree_seed"), SubResource("MerchantOffer_tomato_seed"), SubResource("MerchantOffer_wheat_seed"), SubResource("MerchantOffer_carrot_seed")]

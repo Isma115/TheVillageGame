@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="NpcDefinition" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/npc_definition.gd" id="1_npc"]
+[ext_resource type="Resource" path="res://data/dialogues/aldara.tres" id="2_dialogue"]
+[ext_resource type="Script" path="res://scripts/data/npc_action_definition.gd" id="3_action"]
+
+[sub_resource type="Resource" id="NpcAction_warm_greeting"]
+script = ExtResource("3_action")
+id = &"warm_greeting"
+label = "Saludar con calidez"
+category = &"positive"
+affinity_delta = 2
+response_text = "Aldara sonríe y te devuelve el saludo con una inclinación de cabeza."
+
+[sub_resource type="Resource" id="NpcAction_offer_help"]
+script = ExtResource("3_action")
+id = &"offer_help"
+label = "Ofrecer tu ayuda"
+category = &"positive"
+affinity_delta = 3
+response_text = "Aldara relaja los hombros; parece agradecer que te tomes en serio sus problemas."
+
+[sub_resource type="Resource" id="NpcAction_neutral_question"]
+script = ExtResource("3_action")
+id = &"neutral_question"
+label = "Preguntar sin comprometerte"
+category = &"neutral"
+affinity_delta = 0
+response_text = "Aldara responde con naturalidad. La conversación continúa sin cambiar su opinión sobre ti."
+
+[sub_resource type="Resource" id="NpcAction_dismissive_interrupt"]
+script = ExtResource("3_action")
+id = &"dismissive_interrupt"
+label = "Interrumpir con desdén"
+category = &"negative"
+affinity_delta = -2
+response_text = "Aldara frunce el ceño y guarda silencio durante un instante antes de continuar."
+
+[resource]
+script = ExtResource("1_npc")
+id = &"aldara"
+display_name = "Aldara"
+title = "Cartógrafa de la aldea"
+dialogue = ExtResource("2_dialogue")
+expected_choice_count = 100
+interaction_actions = [SubResource("NpcAction_warm_greeting"), SubResource("NpcAction_offer_help"), SubResource("NpcAction_neutral_question"), SubResource("NpcAction_dismissive_interrupt")]
+area_id = &"overworld"
+world_position = Vector2(1155, 930)
+interaction_distance = 104.0
+collision_rect = Rect2(-15, 13, 30, 20)
+placement_rect = Rect2(-52, -62, 104, 112)
+skin_color = Color(0.85098, 0.627451, 0.435294, 1)
+hair_color = Color(0.294118, 0.25098, 0.341176, 1)
+clothing_color = Color(0.447059, 0.360784, 0.611765, 1)
+accent_color = Color(0.878431, 0.741176, 0.388235, 1)

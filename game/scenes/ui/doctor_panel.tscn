@@ -1,0 +1,126 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/doctor_panel.gd" id="1_doctor_panel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_doctor"]
+content_margin_left = 26.0
+content_margin_top = 22.0
+content_margin_right = 26.0
+content_margin_bottom = 22.0
+bg_color = Color(0.0941176, 0.172549, 0.113725, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.290196, 0.717647, 0.705882, 0.82)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.48)
+shadow_size = 14
+
+[node name="DoctorPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -198.0
+offset_right = 250.0
+offset_bottom = 198.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBox_doctor")
+script = ExtResource("1_doctor_panel")
+
+[node name="DoctorRows" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DoctorHeader" type="HBoxContainer" parent="DoctorRows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DoctorTitle" type="Label" parent="DoctorRows/DoctorHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.290196, 0.717647, 0.705882, 1)
+theme_override_font_sizes/font_size = 22
+text = "Consulta médica"
+
+[node name="DoctorCost" type="Label" parent="DoctorRows/DoctorHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
+theme_override_font_sizes/font_size = 14
+text = "Coste: 5 monedas"
+vertical_alignment = 1
+
+[node name="DoctorHint" type="Label" parent="DoctorRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.72)
+theme_override_font_sizes/font_size = 12
+text = "El médico revisará tu estado actual y tu capacidad máxima de estamina."
+autowrap_mode = 2
+
+[node name="DoctorSeparator" type="HSeparator" parent="DoctorRows"]
+layout_mode = 2
+
+[node name="DoctorStatus" type="Label" parent="DoctorRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="DoctorReportRows" type="VBoxContainer" parent="DoctorRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DoctorHealthStatus" type="Label" parent="DoctorRows/DoctorReportRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.290196, 0.717647, 0.705882, 1)
+theme_override_font_sizes/font_size = 16
+text = "ESTADO DE SALUD  ·  SALUDABLE"
+horizontal_alignment = 1
+
+[node name="DoctorHealthValue" type="Label" parent="DoctorRows/DoctorReportRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.94)
+theme_override_font_sizes/font_size = 15
+text = "SALUD (HP)  ·  100 / 100"
+horizontal_alignment = 1
+
+[node name="DoctorStaminaValue" type="Label" parent="DoctorRows/DoctorReportRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.94)
+theme_override_font_sizes/font_size = 15
+text = "ESTAMINA MÁXIMA  ·  100"
+horizontal_alignment = 1
+
+[node name="DoctorBalance" type="Label" parent="DoctorRows/DoctorReportRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
+theme_override_font_sizes/font_size = 13
+text = "Monedas restantes  ·  0"
+horizontal_alignment = 1
+
+[node name="DoctorClose" type="Button" parent="DoctorRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Cerrar"

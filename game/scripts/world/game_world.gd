@@ -51,6 +51,30 @@ func path_tile_count() -> int:
 	return path_tiles.size()
 
 
+func cell_for_world_position(world_position: Vector2) -> Vector2i:
+	return Vector2i(
+		floori(world_position.x / catalog.tile_size),
+		floori(world_position.y / catalog.tile_size)
+	)
+
+
+func tile_center(cell: Vector2i) -> Vector2:
+	return Vector2(cell) * catalog.tile_size + Vector2.ONE * catalog.tile_size / 2.0
+
+
+func is_valid_cell(cell: Vector2i) -> bool:
+	return (
+		cell.x >= 0
+		and cell.y >= 0
+		and cell.x < catalog.world_columns
+		and cell.y < catalog.world_rows
+	)
+
+
+func is_grass_tile(cell: Vector2i) -> bool:
+	return is_valid_cell(cell) and not path_tile_keys.has(_path_tile_key(cell.x, cell.y))
+
+
 func is_position_near_path(world_position: Vector2, clearance: float) -> bool:
 	var center_cell := Vector2i(
 		floori(world_position.x / catalog.tile_size),

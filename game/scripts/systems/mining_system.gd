@@ -14,15 +14,18 @@ var _sites: Dictionary = {}
 var _vein_sites: Dictionary = {}
 var _interaction_system: InteractionSystem
 var _inventory: InventoryService
+var _tool_service: ToolService
 
 
 func initialize(
 	interaction_system: InteractionSystem,
-	inventory: InventoryService
+	inventory: InventoryService,
+	tool_service: ToolService = null
 ) -> void:
 	_clear_veins()
 	_interaction_system = interaction_system
 	_inventory = inventory
+	_tool_service = tool_service
 
 
 func register_mine(
@@ -192,6 +195,7 @@ func _spawn_vein(
 		site.definition.random_seed + index * 104729,
 		index
 	)
+	vein.set_tool_service(_tool_service)
 	site.actor_layer.add_child(vein)
 	vein.interaction_requested.connect(_on_vein_interaction_requested)
 	site.collision_world.register_obstacle(
@@ -209,9 +213,13 @@ func _on_vein_interaction_requested(target: Node2D, source: Node2D) -> void:
 	var vein := target as OreVeinActor
 	if vein == null or not vein.can_interact(source):
 		return
+	if _tool_service == null or not _tool_service.can_use_capability(&"mine"):
+		return
 
 	var site := _vein_sites.get(vein.get_instance_id()) as MiningSiteRuntime
 	if site == null or not site.action_cooldown.try_start(site.definition.mining_cooldown):
+		return
+	if _tool_service.try_use_capability(&"mine") == null:
 		return
 	if not vein.apply_mining_hit(site.definition.base_mining_damage):
 		return

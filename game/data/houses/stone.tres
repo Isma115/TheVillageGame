@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_house")
 id = &"stone"
-label = "Casa de piedra"
+label = "Hotel de la aldea"
 texture = ExtResource("2_texture")
 world_position = Vector2(840, 540)
 render_size = 340.0

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NpcDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/npc_definition.gd" id="1_npc"]
+[ext_resource type="Resource" path="res://data/merchants/village_merchant.tres" id="2_merchant"]
+
+[resource]
+script = ExtResource("1_npc")
+id = &"merchant"
+display_name = "Bruno"
+title = "Mercader de Pradera"
+merchant = ExtResource("2_merchant")
+area_id = &"overworld"
+world_position = Vector2(1450, 900)
+interaction_distance = 108.0
+collision_rect = Rect2(-15, 13, 30, 20)
+placement_rect = Rect2(-52, -62, 104, 112)
+skin_color = Color(0.694118, 0.501961, 0.333333, 1)
+hair_color = Color(0.152941, 0.12549, 0.101961, 1)
+clothing_color = Color(0.207843, 0.345098, 0.392157, 1)
+accent_color = Color(0.901961, 0.701961, 0.301961, 1)

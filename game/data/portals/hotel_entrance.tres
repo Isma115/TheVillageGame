@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AreaPortalDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/area_portal_definition.gd" id="1_portal"]
+
+[resource]
+script = ExtResource("1_portal")
+id = &"hotel_entrance"
+label = "Entrar en el hotel"
+source_area_id = &"overworld"
+target_area_id = &"village_hotel"
+world_position = Vector2(840, 558)
+target_position = Vector2(480, 560)
+interaction_offset = Vector2(0, -28)
+interaction_distance = 108.0
+priority = 210
+visual_style = "stairs"
+render_rect = Rect2(-64, -76, 128, 92)
+collision_rect = Rect2(0, 0, 0, 0)
+accent_color = Color(0.435294, 0.647059, 0.811765, 1)

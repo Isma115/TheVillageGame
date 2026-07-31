@@ -1,0 +1,90 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/planting_panel.gd" id="1_planting_panel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_planting"]
+content_margin_left = 22.0
+content_margin_top = 18.0
+content_margin_right = 22.0
+content_margin_bottom = 18.0
+bg_color = Color(0.0941176, 0.172549, 0.113725, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.560784, 0.776471, 0.32549, 0.76)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.45)
+shadow_size = 12
+
+[node name="PlantingPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -150.0
+offset_right = 250.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBox_planting")
+script = ExtResource("1_planting_panel")
+
+[node name="PlantingRows" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PlantingTitle" type="Label" parent="PlantingRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 22
+text = "Plantar"
+horizontal_alignment = 1
+
+[node name="PlantingLocation" type="Label" parent="PlantingRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.68)
+theme_override_font_sizes/font_size = 12
+text = "Hueco de césped"
+horizontal_alignment = 1
+
+[node name="PlantingHint" type="Label" parent="PlantingRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.8)
+theme_override_font_sizes/font_size = 13
+text = "Selecciona la semilla que quieres utilizar."
+horizontal_alignment = 1
+
+[node name="PlantingSeparator" type="HSeparator" parent="PlantingRows"]
+layout_mode = 2
+
+[node name="PlantingOptions" type="VBoxContainer" parent="PlantingRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PlantingStatus" type="Label" parent="PlantingRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PlantingClose" type="Button" parent="PlantingRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Cerrar"

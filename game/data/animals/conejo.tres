@@ -12,6 +12,7 @@ world_position = Vector2(520, 1070)
 initial_direction = Vector2(1, 0)
 random_seed = 101
 max_population = 3
+hunting_health = 1
 render_width = 34.0
 anchor_y = 0.86
 collision_radius = 10.0

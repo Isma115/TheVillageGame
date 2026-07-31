@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="HotelDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hotel_definition.gd" id="1_hotel"]
+
+[resource]
+script = ExtResource("1_hotel")
+id = &"hotel"
+area_id = &"village_hotel"
+label = "Hotel de la aldea"
+interior_size = Vector2(960, 720)
+wall_inset = 56.0
+player_spawn = Vector2(480, 560)
+bed_position = Vector2(720, 200)
+rest_position = Vector2(720, 310)
+interior_obstacles = [Rect2(610, 120, 220, 160), Rect2(110, 155, 260, 70), Rect2(180, 390, 220, 70)]
+void_color = Color(0.094118, 0.164706, 0.219608, 1)
+wall_color = Color(0.196078, 0.298039, 0.388235, 1)
+wall_light_color = Color(0.329412, 0.45098, 0.556863, 1)
+floor_color = Color(0.717647, 0.647059, 0.541176, 1)
+floor_light_color = Color(0.839216, 0.780392, 0.662745, 1)
+accent_color = Color(0.435294, 0.647059, 0.811765, 1)
