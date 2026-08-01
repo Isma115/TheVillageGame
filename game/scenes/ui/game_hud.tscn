@@ -240,6 +240,7 @@ theme_override_font_sizes/font_size = 11
 text = "Controles móviles"
 
 [node name="VitalsPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
@@ -261,6 +262,7 @@ text = "ESTAMINA"
 vertical_alignment = 1
 
 [node name="StaminaBars" type="Control" parent="VitalsPanel/StaminaRow"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(108, 12)
 layout_mode = 2
 size_flags_horizontal = 3

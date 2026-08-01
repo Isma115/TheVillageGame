@@ -147,7 +147,8 @@ func _initialize_interface() -> void:
 		player.health,
 		player.maximum_health,
 		player.stamina,
-		player.maximum_stamina
+		player.maximum_stamina,
+		player.stamina_cap
 	)
 	var equipped_tool := tool_service.equipped_tool()
 	if equipped_tool != null:

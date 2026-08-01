@@ -132,11 +132,14 @@ La definición jugable del hacha está en `data/tools/axe.tres`; el catálogo la
 marca como herramienta predeterminada del personaje.
 La salud (HP) y la estamina se configuran en la sección `Jugador` de
 `data/game_catalog.tres`. `PlayerActor` conserva HP, daño, curación y
-persistencia sin mostrarlo todavía en el HUD. También consume
-`stamina_drain_rate` mientras corre y reduce `stamina_capacity_drain_rate` a un
-ritmo mucho menor. La capacidad máxima solo disminuye al correr y no se
-recupera con el tiempo; dormir la restaura. Cuando la estamina llega a cero
-manteniendo la carrera, `PlayerActor` usa la velocidad
+persistencia sin mostrarlo todavía en el HUD. La estamina usa tres valores:
+`stamina` (actual, se consume al correr y se recupera en reposo), `maximum_stamina`
+(máxima actual, se reduce al correr con `stamina_capacity_drain_rate` hasta
+`player_min_stamina_capacity` y solo se restaura al dormir) y `stamina_cap`
+(capacidad oculta entrenada: cada `stamina_training_interval` segundos de carrera
+crece de 1 en 1 hasta `player_max_stamina_cap`, 200 por defecto, y no se pierde al
+dormir). Al dormir, la máxima se restaura hasta la capacidad entrenada. Cuando la
+estamina llega a cero manteniendo la carrera, `PlayerActor` usa la velocidad
 configurada en `player_exhausted_speed` hasta recuperar el 25% de la capacidad;
 entonces vuelve a permitir la carrera.
 

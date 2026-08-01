@@ -39,6 +39,8 @@ signal options_closed
 @onready var interaction_label: Label = %InteractionLabel
 @onready var notification_panel: PanelContainer = %NotificationPanel
 @onready var notification_label: Label = %NotificationLabel
+@onready var vitals_panel: PanelContainer = %VitalsPanel
+@onready var stamina_bars_container: Control = %StaminaBars
 @onready var stamina_bar: ProgressBar = %StaminaBar
 @onready var stamina_maximum_bar: ProgressBar = %StaminaMaximumBar
 @onready var stamina_empty_bar: ProgressBar = %StaminaEmptyBar
@@ -81,6 +83,8 @@ var _inventory_tool_labels: Dictionary = {}
 var _pause_open := false
 var _save_for_exit := false
 var _stamina_capacity_limit := 100.0
+var _stamina_bar_base_width := 108.0
+var _vitals_panel_base_right := 258.0
 var _notification_tween: Tween
 var _sleep_fade_tween: Tween
 
@@ -123,6 +127,8 @@ func initialize(
 ) -> void:
 	_mobile_build = mobile_build
 	_stamina_capacity_limit = maxf(maximum_stamina_limit, 1.0)
+	_stamina_bar_base_width = stamina_bars_container.custom_minimum_size.x
+	_vitals_panel_base_right = vitals_panel.offset_right
 	debug_panel.visible = not mobile_build
 	_pause_open = false
 	_save_for_exit = false
@@ -353,17 +359,28 @@ func set_vitals(
 	_health: float,
 	_maximum_health: float,
 	stamina: float,
-	maximum_stamina: float
+	maximum_stamina: float,
+	stamina_cap: float
 ) -> void:
 	var safe_maximum_stamina := maxf(maximum_stamina, 1.0)
-	var safe_capacity_limit := maxf(_stamina_capacity_limit, safe_maximum_stamina)
-	stamina_empty_bar.max_value = safe_capacity_limit
-	stamina_empty_bar.value = safe_capacity_limit
-	stamina_maximum_bar.max_value = safe_capacity_limit
+	var safe_stamina_cap := maxf(stamina_cap, safe_maximum_stamina)
+	stamina_empty_bar.max_value = safe_stamina_cap
+	stamina_empty_bar.value = safe_stamina_cap
+	stamina_maximum_bar.max_value = safe_stamina_cap
 	stamina_maximum_bar.value = safe_maximum_stamina
-	stamina_bar.max_value = safe_capacity_limit
-	stamina_bar.value = clampf(stamina, 0.0, safe_capacity_limit)
+	stamina_bar.max_value = safe_stamina_cap
+	stamina_bar.value = clampf(stamina, 0.0, safe_stamina_cap)
 	stamina_value.text = "%d/%d" % [roundi(stamina), roundi(safe_maximum_stamina)]
+
+	var grow_ratio := maxf(safe_stamina_cap / _stamina_capacity_limit, 1.0)
+	var bar_width := _stamina_bar_base_width * grow_ratio
+	if not is_equal_approx(stamina_bars_container.custom_minimum_size.x, bar_width):
+		stamina_bars_container.custom_minimum_size.x = bar_width
+		vitals_panel.offset_right = (
+			_vitals_panel_base_right
+			+ bar_width
+			- _stamina_bar_base_width
+		)
 
 
 func show_merchant(
@@ -542,6 +559,11 @@ func set_inventory_item(item: ItemDefinition, quantity: int) -> void:
 		return
 
 	var item_label := _inventory_labels.get(item.id) as Label
+	if quantity <= 0:
+		if item_label != null:
+			item_label.visible = false
+		return
+
 	if item_label == null:
 		item_label = Label.new()
 		item_label.add_theme_color_override("font_color", item.display_color)
@@ -549,6 +571,7 @@ func set_inventory_item(item: ItemDefinition, quantity: int) -> void:
 		inventory_list.add_child(item_label)
 		_inventory_labels[item.id] = item_label
 
+	item_label.visible = true
 	item_label.text = "%s  %d" % [item.label, quantity]
 
 

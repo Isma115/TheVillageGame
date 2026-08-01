@@ -37,10 +37,12 @@ const HOTEL_AREA_ID: StringName = &"village_hotel"
 @export var default_tool_id: StringName = &"axe"
 @export_range(1.0, 9999.0, 1.0) var player_max_health := 100.0
 @export_range(1.0, 9999.0, 1.0) var player_max_stamina := 100.0
+@export_range(1.0, 9999.0, 1.0) var player_max_stamina_cap := 200.0
 @export_range(1.0, 9999.0, 1.0) var player_min_stamina_capacity := 20.0
 @export_range(0.1, 9999.0, 0.1) var stamina_drain_rate := 16.0
 @export_range(0.0, 999.0, 0.01) var stamina_capacity_drain_rate := 0.1
 @export_range(0.1, 9999.0, 0.1) var stamina_recovery_rate := 20.0
+@export_range(1.0, 999999.0, 1.0) var stamina_training_interval := 15.0
 @export_range(0, 999999, 1) var starting_coins := 100
 @export_range(1.0, 999999.0, 1.0) var tree_seed_growth_time := 60.0
 
@@ -221,6 +223,10 @@ func _validate_player_stats() -> PackedStringArray:
 		errors.append("El agotamiento de la capacidad de estamina no puede ser negativo.")
 	if stamina_capacity_drain_rate >= stamina_drain_rate:
 		errors.append("La capacidad de estamina debe agotarse más lentamente que la estamina.")
+	if player_max_stamina_cap < player_max_stamina:
+		errors.append("El límite de estamina máxima no puede ser menor que la inicial.")
+	if stamina_training_interval <= 0.0:
+		errors.append("El intervalo de entrenamiento de estamina debe ser positivo.")
 	if stamina_recovery_rate <= 0.0:
 		errors.append("La recuperación de estamina debe ser positiva.")
 	if tree_seed_growth_time <= 0.0:

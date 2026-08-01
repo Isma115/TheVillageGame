@@ -180,10 +180,13 @@ func _validate_player_vitals() -> PackedStringArray:
 	var initial_maximum_health := _player.maximum_health
 	var initial_stamina := _player.stamina
 	var initial_maximum_stamina := _player.maximum_stamina
+	var initial_stamina_cap := _player.stamina_cap
 	if initial_health != initial_maximum_health:
 		errors.append("La salud inicial no está completa.")
 	if initial_stamina != initial_maximum_stamina:
 		errors.append("La estamina inicial no está completa.")
+	if initial_stamina_cap != initial_maximum_stamina:
+		errors.append("La capacidad de estamina inicial no coincide con la máxima.")
 
 	_player.advance_vitals(1.0, true)
 	if _player.stamina >= initial_stamina:
@@ -192,17 +195,34 @@ func _validate_player_vitals() -> PackedStringArray:
 		errors.append("Correr no reduce la estamina máxima.")
 	var fatigued_stamina := _player.stamina
 	var fatigued_maximum_stamina := _player.maximum_stamina
+	var fatigued_stamina_cap := _player.stamina_cap
+	if not is_equal_approx(fatigued_stamina_cap, initial_stamina_cap):
+		errors.append("Correr entrena la capacidad sin haber corrido lo suficiente.")
 	var before_exhaustion := _player.snapshot()
+	var training_interval_before := _catalog.stamina_training_interval
+	var stamina_cap_before := _catalog.player_max_stamina_cap
+	_catalog.stamina_training_interval = 1.0
+	_catalog.player_max_stamina_cap = fatigued_stamina_cap + 1.0
+	_player.advance_vitals(5.0, true)
+	if _player.stamina_cap != fatigued_stamina_cap + 1.0:
+		errors.append("Correr no entrena la capacidad pulmonar o ignora su límite.")
+	if _player.maximum_stamina > _player.stamina_cap:
+		errors.append("La estamina máxima supera su capacidad entrenada.")
+	_catalog.stamina_training_interval = training_interval_before
+	_catalog.player_max_stamina_cap = stamina_cap_before
 	_player.advance_vitals(10.0, true)
 	if _player.stamina > 0.0:
 		errors.append("La estamina no llega a cero al agotarse.")
 	if _player.can_sprint(1.0 / 60.0):
 		errors.append("El personaje puede correr con la estamina agotada.")
+	var drained_maximum_stamina := _player.maximum_stamina
 	_player.advance_vitals(2.0, false)
 	if _player.stamina < _player.stamina_exhaustion_threshold():
 		errors.append("La estamina no alcanza el umbral de recuperación del 25%.")
 	if not _player.can_sprint(1.0 / 60.0):
 		errors.append("La carrera no se desbloquea al recuperar el 25% de estamina.")
+	if not is_equal_approx(_player.maximum_stamina, drained_maximum_stamina):
+		errors.append("La estamina máxima se recupera sin dormir.")
 	_player.restore(before_exhaustion)
 
 	_player.advance_vitals(1.0, false)
@@ -211,11 +231,18 @@ func _validate_player_vitals() -> PackedStringArray:
 	if not is_equal_approx(_player.maximum_stamina, fatigued_maximum_stamina):
 		errors.append("La estamina máxima se recupera sin dormir.")
 
+	_player.rest()
+	if not is_equal_approx(_player.maximum_stamina, _player.stamina_cap):
+		errors.append("Dormir no restaura la estamina máxima hasta su capacidad entrenada.")
+	if not is_equal_approx(_player.stamina, _player.maximum_stamina):
+		errors.append("Dormir no llena la estamina hasta la máxima.")
+
 	_player.restore({
 		"health": initial_health,
 		"maximum_health": initial_maximum_health,
 		"stamina": initial_stamina,
-		"maximum_stamina": initial_maximum_stamina
+		"maximum_stamina": initial_maximum_stamina,
+		"stamina_cap": initial_stamina_cap
 	})
 	return errors
 

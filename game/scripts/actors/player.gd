@@ -8,7 +8,8 @@ signal vitals_changed(
 	health: float,
 	maximum_health: float,
 	stamina: float,
-	maximum_stamina: float
+	maximum_stamina: float,
+	stamina_cap: float
 )
 
 @export_category("Directional spritesheet")
@@ -40,7 +41,9 @@ var maximum_health := 100.0
 var health := 100.0
 var maximum_stamina := 100.0
 var stamina := 100.0
+var stamina_cap := 100.0
 var _stamina_exhausted := false
+var _stamina_training_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -59,7 +62,9 @@ func initialize(
 	health = maximum_health
 	maximum_stamina = catalog.player_max_stamina
 	stamina = maximum_stamina
+	stamina_cap = catalog.player_max_stamina
 	_stamina_exhausted = false
+	_stamina_training_elapsed = 0.0
 	_emit_vitals_changed()
 
 	camera.position = Vector2.ZERO
@@ -156,10 +161,11 @@ func stop_movement() -> void:
 func rest() -> void:
 	if catalog != null:
 		maximum_health = catalog.player_max_health
-		maximum_stamina = catalog.player_max_stamina
 	health = maximum_health
+	maximum_stamina = stamina_cap
 	stamina = maximum_stamina
 	_stamina_exhausted = false
+	_stamina_training_elapsed = 0.0
 	_emit_vitals_changed()
 
 
@@ -209,6 +215,7 @@ func snapshot() -> Dictionary:
 		"maximum_health": maximum_health,
 		"stamina": stamina,
 		"maximum_stamina": maximum_stamina,
+		"stamina_cap": stamina_cap,
 		"stamina_exhausted": _stamina_exhausted
 	}
 
@@ -218,11 +225,20 @@ func restore(snapshot_data: Dictionary) -> void:
 		return
 
 	var health_limit := catalog.player_max_health if catalog != null else maximum_health
-	var stamina_limit := catalog.player_max_stamina if catalog != null else maximum_stamina
 	var stamina_floor := (
 		catalog.player_min_stamina_capacity
 		if catalog != null
 		else 1.0
+	)
+	var stamina_cap_floor := (
+		catalog.player_max_stamina
+		if catalog != null
+		else stamina_cap
+	)
+	var stamina_cap_limit := (
+		catalog.player_max_stamina_cap
+		if catalog != null
+		else stamina_cap
 	)
 	maximum_health = clampf(
 		float(snapshot_data.get("maximum_health", maximum_health)),
@@ -234,10 +250,15 @@ func restore(snapshot_data: Dictionary) -> void:
 		0.0,
 		maximum_health
 	)
+	stamina_cap = clampf(
+		float(snapshot_data.get("stamina_cap", stamina_cap)),
+		stamina_cap_floor,
+		stamina_cap_limit
+	)
 	maximum_stamina = clampf(
 		float(snapshot_data.get("maximum_stamina", maximum_stamina)),
 		stamina_floor,
-		stamina_limit
+		stamina_cap
 	)
 	stamina = clampf(
 		float(snapshot_data.get("stamina", stamina)),
@@ -261,17 +282,20 @@ func advance_vitals(delta: float, running: bool) -> void:
 	var previous_maximum_health := maximum_health
 	var previous_stamina := stamina
 	var previous_maximum_stamina := maximum_stamina
+	var previous_stamina_cap := stamina_cap
 	if running:
+		stamina = maxf(0.0, stamina - catalog.stamina_drain_rate * delta)
 		maximum_stamina = maxf(
 			catalog.player_min_stamina_capacity,
 			maximum_stamina - catalog.stamina_capacity_drain_rate * delta
 		)
-		stamina = maxf(0.0, stamina - catalog.stamina_drain_rate * delta)
+		_track_stamina_training(delta)
 	else:
 		stamina = minf(
 			maximum_stamina,
 			stamina + catalog.stamina_recovery_rate * delta
 		)
+	maximum_stamina = minf(maximum_stamina, stamina_cap)
 	stamina = minf(stamina, maximum_stamina)
 	_refresh_stamina_exhaustion_state()
 
@@ -280,7 +304,24 @@ func advance_vitals(delta: float, running: bool) -> void:
 		or not is_equal_approx(previous_maximum_health, maximum_health)
 		or not is_equal_approx(previous_stamina, stamina)
 		or not is_equal_approx(previous_maximum_stamina, maximum_stamina)
+		or not is_equal_approx(previous_stamina_cap, stamina_cap)
 	):
+		_emit_vitals_changed()
+
+
+func _track_stamina_training(delta: float) -> void:
+	if catalog == null or catalog.stamina_training_interval <= 0.0:
+		return
+	_stamina_training_elapsed += delta
+	while _stamina_training_elapsed >= catalog.stamina_training_interval:
+		_stamina_training_elapsed -= catalog.stamina_training_interval
+		if stamina_cap >= catalog.player_max_stamina_cap:
+			_stamina_training_elapsed = 0.0
+			return
+		stamina_cap = minf(
+			catalog.player_max_stamina_cap,
+			stamina_cap + 1.0
+		)
 		_emit_vitals_changed()
 
 
@@ -295,7 +336,13 @@ func _refresh_stamina_exhaustion_state() -> void:
 
 
 func _emit_vitals_changed() -> void:
-	vitals_changed.emit(health, maximum_health, stamina, maximum_stamina)
+	vitals_changed.emit(
+		health,
+		maximum_health,
+		stamina,
+		maximum_stamina,
+		stamina_cap
+	)
 
 
 func _update_run_clouds(
