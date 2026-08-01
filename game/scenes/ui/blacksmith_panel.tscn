@@ -53,11 +53,7 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_cooldown_fill"]
-bg_color = Color(0.941176, 0.776471, 0.360784, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+bg_color = Color(1, 1, 1, 1)
 
 [node name="BlacksmithPanel" type="PanelContainer"]
 visible = false
@@ -103,9 +99,9 @@ theme_override_constants/separation = 8
 
 [node name="StrikeCooldownBar" type="ProgressBar" parent="Rows/MeterRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 0)
+custom_minimum_size = Vector2(16, 8)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 4
 theme_override_styles/background = SubResource("StyleBox_cooldown_track")
 theme_override_styles/fill = SubResource("StyleBox_cooldown_fill")
 max_value = 100.0

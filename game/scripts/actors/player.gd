@@ -9,7 +9,9 @@ signal vitals_changed(
 	maximum_health: float,
 	stamina: float,
 	maximum_stamina: float,
-	stamina_cap: float
+	stamina_cap: float,
+	thirst: float,
+	maximum_thirst: float
 )
 
 @export_category("Directional spritesheet")
@@ -42,6 +44,9 @@ var health := 100.0
 var maximum_stamina := 100.0
 var stamina := 100.0
 var stamina_cap := 100.0
+var maximum_thirst := 100.0
+var thirst := 100.0
+var ambient_temperature := 27.5
 var _stamina_exhausted := false
 var _stamina_training_elapsed := 0.0
 
@@ -63,6 +68,11 @@ func initialize(
 	maximum_stamina = catalog.player_max_stamina
 	stamina = maximum_stamina
 	stamina_cap = catalog.player_max_stamina
+	maximum_thirst = catalog.player_max_thirst
+	thirst = maximum_thirst
+	ambient_temperature = (
+		catalog.temperature_minimum + catalog.temperature_maximum
+	) * 0.5
 	_stamina_exhausted = false
 	_stamina_training_elapsed = 0.0
 	_emit_vitals_changed()
@@ -97,6 +107,31 @@ func set_world_context(
 	if input_state != null:
 		input_state.reset_virtual_controls()
 	queue_redraw()
+
+
+func set_ambient_temperature(value: float) -> void:
+	if catalog == null:
+		ambient_temperature = value
+		return
+	ambient_temperature = clampf(
+		value,
+		catalog.temperature_minimum,
+		catalog.temperature_maximum
+	)
+
+
+func thirst_drain_multiplier() -> float:
+	if catalog == null:
+		return 1.0
+	var temperature_span := catalog.temperature_maximum - catalog.temperature_minimum
+	if temperature_span <= 0.0:
+		return 1.0
+	var temperature_ratio := clampf(
+		(ambient_temperature - catalog.temperature_minimum) / temperature_span,
+		0.0,
+		1.0
+	)
+	return 1.0 + temperature_ratio * catalog.temperature_thirst_bonus
 
 
 func update_player(delta: float) -> void:
@@ -164,6 +199,7 @@ func rest() -> void:
 	health = maximum_health
 	maximum_stamina = stamina_cap
 	stamina = maximum_stamina
+	thirst = maximum_thirst
 	_stamina_exhausted = false
 	_stamina_training_elapsed = 0.0
 	_emit_vitals_changed()
@@ -175,6 +211,18 @@ func health_ratio() -> float:
 
 func stamina_ratio() -> float:
 	return clampf(stamina / maxf(maximum_stamina, 1.0), 0.0, 1.0)
+
+
+func thirst_ratio() -> float:
+	return clampf(thirst / maxf(maximum_thirst, 1.0), 0.0, 1.0)
+
+
+func drink_water() -> bool:
+	if is_equal_approx(thirst, maximum_thirst):
+		return false
+	thirst = maximum_thirst
+	_emit_vitals_changed()
+	return true
 
 
 func can_sprint(_delta: float) -> bool:
@@ -216,6 +264,8 @@ func snapshot() -> Dictionary:
 		"stamina": stamina,
 		"maximum_stamina": maximum_stamina,
 		"stamina_cap": stamina_cap,
+		"thirst": thirst,
+		"maximum_thirst": maximum_thirst,
 		"stamina_exhausted": _stamina_exhausted
 	}
 
@@ -239,6 +289,11 @@ func restore(snapshot_data: Dictionary) -> void:
 		catalog.player_max_stamina_cap
 		if catalog != null
 		else stamina_cap
+	)
+	var thirst_limit := (
+		catalog.player_max_thirst
+		if catalog != null
+		else maximum_thirst
 	)
 	maximum_health = clampf(
 		float(snapshot_data.get("maximum_health", maximum_health)),
@@ -265,6 +320,16 @@ func restore(snapshot_data: Dictionary) -> void:
 		0.0,
 		maximum_stamina
 	)
+	maximum_thirst = clampf(
+		float(snapshot_data.get("maximum_thirst", maximum_thirst)),
+		1.0,
+		thirst_limit
+	)
+	thirst = clampf(
+		float(snapshot_data.get("thirst", thirst)),
+		0.0,
+		maximum_thirst
+	)
 	_stamina_exhausted = bool(
 		snapshot_data.get("stamina_exhausted", stamina <= 0.0)
 	)
@@ -283,6 +348,7 @@ func advance_vitals(delta: float, running: bool) -> void:
 	var previous_stamina := stamina
 	var previous_maximum_stamina := maximum_stamina
 	var previous_stamina_cap := stamina_cap
+	var previous_thirst := thirst
 	if running:
 		stamina = maxf(0.0, stamina - catalog.stamina_drain_rate * delta)
 		maximum_stamina = maxf(
@@ -297,6 +363,10 @@ func advance_vitals(delta: float, running: bool) -> void:
 		)
 	maximum_stamina = minf(maximum_stamina, stamina_cap)
 	stamina = minf(stamina, maximum_stamina)
+	thirst = maxf(
+		0.0,
+		thirst - catalog.thirst_drain_rate * thirst_drain_multiplier() * delta
+	)
 	_refresh_stamina_exhaustion_state()
 
 	if (
@@ -305,6 +375,7 @@ func advance_vitals(delta: float, running: bool) -> void:
 		or not is_equal_approx(previous_stamina, stamina)
 		or not is_equal_approx(previous_maximum_stamina, maximum_stamina)
 		or not is_equal_approx(previous_stamina_cap, stamina_cap)
+		or not is_equal_approx(previous_thirst, thirst)
 	):
 		_emit_vitals_changed()
 
@@ -341,7 +412,9 @@ func _emit_vitals_changed() -> void:
 		maximum_health,
 		stamina,
 		maximum_stamina,
-		stamina_cap
+		stamina_cap,
+		thirst,
+		maximum_thirst
 	)
 
 

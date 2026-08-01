@@ -13,6 +13,14 @@ const HOTEL_AREA_ID: StringName = &"village_hotel"
 @export var ink_color := Color("#193724")
 @export var grass_texture: Texture2D
 @export var path_texture: Texture2D
+@export var lake_position := Vector2(1368.0, 1248.0)
+@export var lake_size := Vector2(240.0, 192.0)
+
+@export_category("Entorno")
+@export_range(0.0, 60.0, 0.1) var temperature_minimum := 25.0
+@export_range(0.0, 60.0, 0.1) var temperature_maximum := 30.0
+@export_range(1.0, 3600.0, 1.0) var temperature_cycle_duration := 240.0
+@export_range(0.0, 0.5, 0.01) var temperature_thirst_bonus := 0.05
 
 @export_category("Contenido")
 @export var plaza := Vector2.ZERO
@@ -38,11 +46,13 @@ const HOTEL_AREA_ID: StringName = &"village_hotel"
 @export_range(1.0, 9999.0, 1.0) var player_max_health := 100.0
 @export_range(1.0, 9999.0, 1.0) var player_max_stamina := 100.0
 @export_range(1.0, 9999.0, 1.0) var player_max_stamina_cap := 200.0
+@export_range(1.0, 9999.0, 1.0) var player_max_thirst := 100.0
 @export_range(1.0, 9999.0, 1.0) var player_min_stamina_capacity := 20.0
 @export_range(0.1, 9999.0, 0.1) var stamina_drain_rate := 16.0
 @export_range(0.0, 999.0, 0.01) var stamina_capacity_drain_rate := 0.1
 @export_range(0.1, 9999.0, 0.1) var stamina_recovery_rate := 20.0
 @export_range(1.0, 999999.0, 1.0) var stamina_training_interval := 15.0
+@export_range(0.0, 999.0, 0.01) var thirst_drain_rate := 0.05
 @export_range(0, 999999, 1) var starting_coins := 100
 @export_range(1.0, 999999.0, 1.0) var tree_seed_growth_time := 60.0
 
@@ -197,6 +207,27 @@ func _validate_world() -> PackedStringArray:
 		errors.append("Falta la textura del camino.")
 	if not playable_bounds().has_point(player_spawn):
 		errors.append("El jugador aparece fuera del área jugable.")
+	if lake_size.x <= 0.0 or lake_size.y <= 0.0:
+		errors.append("El lago debe tener un tamaño válido.")
+	elif not playable_bounds().encloses(
+		Rect2(lake_position - lake_size / 2.0, lake_size)
+	):
+		errors.append("El lago queda fuera del área jugable.")
+	if tile_size > 0.0:
+		var lake_origin := lake_position - lake_size / 2.0
+		if (
+			not is_equal_approx(lake_size.x / tile_size, roundf(lake_size.x / tile_size))
+			or not is_equal_approx(lake_size.y / tile_size, roundf(lake_size.y / tile_size))
+			or not is_equal_approx(lake_origin.x / tile_size, roundf(lake_origin.x / tile_size))
+			or not is_equal_approx(lake_origin.y / tile_size, roundf(lake_origin.y / tile_size))
+		):
+			errors.append("El lago debe alinearse con la cuadricula del terreno.")
+	if temperature_maximum < temperature_minimum:
+		errors.append("La temperatura maxima no puede ser menor que la minima.")
+	if temperature_cycle_duration <= 0.0:
+		errors.append("El ciclo de temperatura debe ser positivo.")
+	if temperature_thirst_bonus < 0.0:
+		errors.append("El modificador de sed por temperatura no puede ser negativo.")
 	if player_run_speed < player_walk_speed:
 		errors.append("La velocidad al correr no puede ser menor que la de caminar.")
 	if player_exhausted_speed >= player_walk_speed:
@@ -212,6 +243,8 @@ func _validate_player_stats() -> PackedStringArray:
 		errors.append("La salud máxima del jugador debe ser positiva.")
 	if player_max_stamina <= 0.0:
 		errors.append("La estamina máxima del jugador debe ser positiva.")
+	if player_max_thirst <= 0.0:
+		errors.append("La sed máxima del jugador debe ser positiva.")
 	if (
 		player_min_stamina_capacity <= 0.0
 		or player_min_stamina_capacity > player_max_stamina
@@ -229,6 +262,8 @@ func _validate_player_stats() -> PackedStringArray:
 		errors.append("El intervalo de entrenamiento de estamina debe ser positivo.")
 	if stamina_recovery_rate <= 0.0:
 		errors.append("La recuperación de estamina debe ser positiva.")
+	if thirst_drain_rate < 0.0:
+		errors.append("El consumo de sed no puede ser negativo.")
 	if tree_seed_growth_time <= 0.0:
 		errors.append("El tiempo de crecimiento de la semilla debe ser positivo.")
 	return errors

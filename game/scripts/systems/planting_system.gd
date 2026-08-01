@@ -90,8 +90,6 @@ func can_plant_at(world_position: Vector2) -> bool:
 		return false
 	if _collision_world.is_position_blocked(center, 5.0):
 		return false
-	if _player != null and _player.global_position.distance_to(center) < _catalog.player_radius + 7.0:
-		return false
 	return true
 
 

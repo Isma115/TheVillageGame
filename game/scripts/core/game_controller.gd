@@ -2,6 +2,7 @@ extends Node2D
 class_name GameController
 
 const SMOKE_TEST_ARGUMENT := "--smoke-test"
+const PLANTING_CONTEXT_MAX_DISTANCE := 128.0
 
 @export var catalog: GameCatalog
 @export var mine_area_scene: PackedScene
@@ -35,6 +36,7 @@ var wallet := WalletService.new()
 var merchant_service := MerchantService.new()
 var doctor_service := DoctorService.new()
 var planting_system := PlantingSystem.new()
+var temperature_system := TemperatureSystem.new()
 var save_game_service := SaveGameService.new()
 var debug_elapsed := 0.0
 var mobile_build := false
@@ -49,6 +51,7 @@ var mobile_controls_before_blacksmith := false
 var mobile_controls_before_hotel_sleep := false
 var hotel_sleeping := false
 var planting_position := Vector2.ZERO
+var context_position := Vector2.ZERO
 var blacksmith_spot: BlacksmithSpotActor
 var _anvil_bars_completed := 0
 
@@ -57,6 +60,11 @@ func _ready() -> void:
 	if not _validate_configuration():
 		return
 
+	temperature_system.initialize(
+		catalog.temperature_minimum,
+		catalog.temperature_maximum,
+		catalog.temperature_cycle_duration
+	)
 	RenderingServer.set_default_clear_color(catalog.grass_color)
 	mobile_build = OS.has_feature("android") or OS.has_feature("ios") or OS.has_feature("mobile")
 	add_child(sound_service)
@@ -117,6 +125,8 @@ func _initialize_world() -> void:
 
 func _initialize_interface() -> void:
 	game_hud.initialize(mobile_build, catalog.player_max_stamina)
+	temperature_system.temperature_changed.connect(game_hud.set_temperature)
+	game_hud.set_temperature(temperature_system.current_temperature())
 	game_hud.pause_state_changed.connect(_on_pause_state_changed)
 	game_hud.save_confirmed.connect(_on_save_confirmed)
 	game_hud.save_cancelled.connect(_on_save_cancelled)
@@ -148,7 +158,9 @@ func _initialize_interface() -> void:
 		player.maximum_health,
 		player.stamina,
 		player.maximum_stamina,
-		player.stamina_cap
+		player.stamina_cap,
+		player.thirst,
+		player.maximum_thirst
 	)
 	var equipped_tool := tool_service.equipped_tool()
 	if equipped_tool != null:
@@ -168,6 +180,9 @@ func _initialize_interface() -> void:
 	game_hud.planting_close_requested.connect(_close_planting)
 	game_hud.planting_context_plant_requested.connect(
 		_on_planting_context_plant_requested
+	)
+	game_hud.water_context_drink_requested.connect(
+		_on_water_context_drink_requested
 	)
 	game_hud.inventory_close_requested.connect(_close_inventory)
 	game_hud.blacksmith_coin_earned.connect(_on_blacksmith_coin_earned)
@@ -189,10 +204,14 @@ func _initialize_interface() -> void:
 
 func _initialize_player_and_interactions() -> void:
 	player.initialize(catalog, overworld_collision_world, input_state)
+	player.set_ambient_temperature(temperature_system.current_temperature())
 	player.sound_service = sound_service
 	interaction_system.prompt_changed.connect(game_hud.set_interaction_prompt)
 	interaction_system.prompt_changed.connect(mobile_controls.set_primary_action)
 	interaction_system.initialize(player, input_state)
+	for house in game_world.houses:
+		house.interaction_requested.connect(_on_house_interaction_requested)
+		interaction_system.register_interactable(house)
 
 
 func _initialize_areas() -> bool:
@@ -386,7 +405,15 @@ func _process(delta: float) -> void:
 	):
 		return
 
+	temperature_system.update(delta)
+	player.set_ambient_temperature(temperature_system.current_temperature())
 	player.update_player(delta)
+	if (
+		game_hud.is_planting_context_visible()
+		and player.global_position.distance_to(context_position)
+		> PLANTING_CONTEXT_MAX_DISTANCE
+	):
+		_hide_planting_context_menu()
 	planting_system.update(delta)
 	if world_area_system.is_area_active(GameCatalog.OVERWORLD_AREA_ID):
 		wildlife.update_animals(delta)
@@ -410,6 +437,9 @@ func _notification(what: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not initialized or not is_instance_valid(game_hud):
+		return
+
 	if hotel_sleeping:
 		get_viewport().set_input_as_handled()
 		return
@@ -444,9 +474,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if event is InputEventMouseButton and event.pressed:
-			_hide_planting_context_menu()
-			get_viewport().set_input_as_handled()
-			return
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				_hide_planting_context_menu()
+				get_viewport().set_input_as_handled()
+				return
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				_hide_planting_context_menu()
 
 	if game_hud.is_planting_visible():
 		if _is_pause_event(event):
@@ -478,15 +511,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_open_inventory()
 		get_viewport().set_input_as_handled()
 		return
-	if _is_planting_request_event(event):
+	if _is_grid_context_request_event(event):
 		var pointer_position := player.get_global_mouse_position()
-		if planting_system.can_plant_at(pointer_position):
+		var clicked_cell := game_world.cell_for_world_position(pointer_position)
+		if game_world.is_water_tile(clicked_cell):
+			_show_water_context_menu(pointer_position)
+		elif planting_system.can_plant_at(pointer_position):
 			_show_planting_context_menu(pointer_position)
 		get_viewport().set_input_as_handled()
 		return
 	if _is_hunting_shot_event(event):
 		hunting_system.shoot_at(player.get_global_mouse_position())
 		get_viewport().set_input_as_handled()
+		return
+	if _is_tree_chop_event(event):
+		if interaction_system.interact_current_tree():
+			get_viewport().set_input_as_handled()
 		return
 	if _try_equip_tool_shortcut(event):
 		get_viewport().set_input_as_handled()
@@ -637,6 +677,34 @@ func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
 	_refresh_hunting_mode_display()
 
 
+func _on_house_interaction_requested(target: Node2D, _source: Node2D) -> void:
+	var house := target as HouseActor
+	if house == null or house.definition == null:
+		return
+
+	var entrance := _entrance_portal_for_house(house)
+	if entrance != null and world_area_system.transition_to(
+		entrance.target_area_id,
+		entrance.target_position
+	):
+		return
+
+	game_hud.show_notification("Cerrada")
+
+
+func _entrance_portal_for_house(house: HouseActor) -> AreaPortalDefinition:
+	if house == null or catalog == null:
+		return null
+	for portal in catalog.portal_definitions():
+		if (
+			portal.source_area_id == GameCatalog.OVERWORLD_AREA_ID
+			and house.global_position.distance_to(portal.world_position)
+			<= catalog.tile_size
+		):
+			return portal
+	return null
+
+
 func _on_blacksmith_coin_earned() -> void:
 	wallet.earn(1)
 	game_hud.show_notification("Has ganado 1 moneda trabajando en el yunque.")
@@ -715,7 +783,18 @@ func _show_planting_context_menu(pointer_position: Vector2) -> void:
 	if game_hud.is_planting_context_visible() or game_hud.is_planting_visible():
 		return
 	planting_position = planting_system.tile_center_for_world_position(pointer_position)
+	context_position = planting_position
 	game_hud.show_planting_context_menu()
+
+
+func _show_water_context_menu(pointer_position: Vector2) -> void:
+	if game_hud.is_planting_context_visible() or game_hud.is_planting_visible():
+		return
+	var cell := game_world.cell_for_world_position(pointer_position)
+	if not game_world.is_water_tile(cell):
+		return
+	context_position = game_world.tile_center(cell)
+	game_hud.show_water_context_menu()
 
 
 func _hide_planting_context_menu() -> void:
@@ -729,6 +808,24 @@ func _on_planting_context_plant_requested() -> void:
 	_open_planting(planting_position)
 
 
+func _on_water_context_drink_requested() -> void:
+	if not game_hud.is_planting_context_visible():
+		return
+	var cell := game_world.cell_for_world_position(context_position)
+	if (
+		not game_world.is_water_tile(cell)
+		or player.global_position.distance_to(context_position)
+		> PLANTING_CONTEXT_MAX_DISTANCE
+	):
+		_hide_planting_context_menu()
+		return
+	_hide_planting_context_menu()
+	if player.drink_water():
+		game_hud.show_notification("Has bebido agua del lago.")
+	else:
+		game_hud.show_notification("No tienes sed.")
+
+
 func _on_crop_harvested(item: ItemDefinition, amount: int) -> void:
 	game_hud.show_notification(
 		"Has recogido %d %s." % [amount, item.label.to_lower()]
@@ -740,6 +837,7 @@ func _open_planting(pointer_position: Vector2) -> void:
 		return
 	_hide_planting_context_menu()
 	planting_position = planting_system.tile_center_for_world_position(pointer_position)
+	context_position = planting_position
 	mobile_controls_before_planting = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
 	player.stop_movement()
@@ -898,7 +996,18 @@ func _is_hunting_shot_event(event: InputEvent) -> bool:
 	)
 
 
-func _is_planting_request_event(event: InputEvent) -> bool:
+func _is_tree_chop_event(event: InputEvent) -> bool:
+	return (
+		not mobile_build
+		and world_area_system.is_area_active(GameCatalog.OVERWORLD_AREA_ID)
+		and event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.pressed
+		and not game_paused
+	)
+
+
+func _is_grid_context_request_event(event: InputEvent) -> bool:
 	return (
 		not mobile_build
 		and world_area_system.is_area_active(GameCatalog.OVERWORLD_AREA_ID)
@@ -1004,6 +1113,7 @@ func _snapshot_game() -> Dictionary:
 		"inventory": inventory.snapshot(),
 		"tools": tool_service.snapshot(),
 		"wallet": wallet.snapshot(),
+		"temperature": temperature_system.snapshot(),
 		"anvil_bars_completed": _anvil_bars_completed,
 		"trees": forestry_system.snapshot(),
 		"plantings": planting_system.snapshot(),
@@ -1040,6 +1150,10 @@ func _load_saved_game() -> void:
 		elif catalog.hotel != null and area_id == catalog.hotel.area_id:
 			fallback_position = catalog.hotel.player_spawn
 	var saved_player := snapshot.get("player", {}) as Dictionary
+	var saved_temperature: Variant = snapshot.get("temperature", {})
+	if saved_temperature is Dictionary:
+		temperature_system.restore(saved_temperature as Dictionary)
+		player.set_ambient_temperature(temperature_system.current_temperature())
 	var player_position := Vector2(
 		float(saved_player.get("x", fallback_position.x)),
 		float(saved_player.get("y", fallback_position.y))

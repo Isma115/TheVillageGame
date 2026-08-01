@@ -181,18 +181,24 @@ func _validate_player_vitals() -> PackedStringArray:
 	var initial_stamina := _player.stamina
 	var initial_maximum_stamina := _player.maximum_stamina
 	var initial_stamina_cap := _player.stamina_cap
+	var initial_thirst := _player.thirst
+	var initial_maximum_thirst := _player.maximum_thirst
 	if initial_health != initial_maximum_health:
 		errors.append("La salud inicial no está completa.")
 	if initial_stamina != initial_maximum_stamina:
 		errors.append("La estamina inicial no está completa.")
 	if initial_stamina_cap != initial_maximum_stamina:
 		errors.append("La capacidad de estamina inicial no coincide con la máxima.")
+	if initial_thirst != initial_maximum_thirst:
+		errors.append("La sed inicial no está completa.")
 
 	_player.advance_vitals(1.0, true)
 	if _player.stamina >= initial_stamina:
 		errors.append("Correr no consume estamina.")
 	if _player.maximum_stamina >= initial_maximum_stamina:
 		errors.append("Correr no reduce la estamina máxima.")
+	if _player.thirst >= initial_thirst:
+		errors.append("El paso del tiempo no consume sed.")
 	var fatigued_stamina := _player.stamina
 	var fatigued_maximum_stamina := _player.maximum_stamina
 	var fatigued_stamina_cap := _player.stamina_cap
@@ -242,7 +248,9 @@ func _validate_player_vitals() -> PackedStringArray:
 		"maximum_health": initial_maximum_health,
 		"stamina": initial_stamina,
 		"maximum_stamina": initial_maximum_stamina,
-		"stamina_cap": initial_stamina_cap
+		"stamina_cap": initial_stamina_cap,
+		"thirst": initial_thirst,
+		"maximum_thirst": initial_maximum_thirst
 	})
 	return errors
 
@@ -633,6 +641,7 @@ func _validate_overworld() -> PackedStringArray:
 		_forestry_system.active_tree_count()
 		+ _world_area_system.portal_count(GameCatalog.OVERWORLD_AREA_ID)
 		+ _npc_dialogue_system.npc_count(GameCatalog.OVERWORLD_AREA_ID)
+		+ _game_world.house_count()
 	)
 	for house in _catalog.house_definitions():
 		if house.id == &"blacksmith":
@@ -652,6 +661,11 @@ func _validate_overworld() -> PackedStringArray:
 		+ _forestry_system.active_tree_count()
 		+ _world_area_system.portal_collision_count(GameCatalog.OVERWORLD_AREA_ID)
 		+ _npc_dialogue_system.npc_count(GameCatalog.OVERWORLD_AREA_ID)
+		+ (
+			_game_world.water_block_count()
+			if _game_world.has_water_source()
+			else 0
+		)
 	)
 	if _overworld_collision_world.obstacle_count() != expected_obstacles:
 		errors.append(

@@ -16,6 +16,7 @@ signal doctor_diagnosis_requested
 signal planting_seed_selected(seed_id: StringName)
 signal planting_close_requested
 signal planting_context_plant_requested
+signal water_context_drink_requested
 signal inventory_close_requested
 signal blacksmith_coin_earned
 signal blacksmith_close_requested
@@ -45,6 +46,9 @@ signal options_closed
 @onready var stamina_maximum_bar: ProgressBar = %StaminaMaximumBar
 @onready var stamina_empty_bar: ProgressBar = %StaminaEmptyBar
 @onready var stamina_value: Label = %StaminaValue
+@onready var thirst_bar: ProgressBar = %ThirstBar
+@onready var thirst_value: Label = %ThirstValue
+@onready var temperature_value: Label = %TemperatureValue
 @onready var inventory_panel: PanelContainer = %InventoryPanel
 @onready var inventory_wallet_label: Label = %InventoryWalletLabel
 @onready var inventory_list: VBoxContainer = %InventoryList
@@ -85,6 +89,7 @@ var _save_for_exit := false
 var _stamina_capacity_limit := 100.0
 var _stamina_bar_base_width := 108.0
 var _vitals_panel_base_right := 258.0
+var _context_action: StringName = &""
 var _notification_tween: Tween
 var _sleep_fade_tween: Tween
 
@@ -114,7 +119,7 @@ func _ready() -> void:
 	doctor_panel.diagnosis_requested.connect(_on_doctor_diagnosis_requested)
 	planting_panel.seed_selected.connect(_on_planting_seed_selected)
 	planting_panel.close_requested.connect(_on_planting_close_requested)
-	planting_context_button.pressed.connect(_on_planting_context_plant_requested)
+	planting_context_button.pressed.connect(_on_context_button_pressed)
 	planting_context_menu.gui_input.connect(_on_planting_context_menu_gui_input)
 	blacksmith_panel.coin_earned.connect(_on_blacksmith_coin_earned)
 	blacksmith_panel.close_requested.connect(_on_blacksmith_close_requested)
@@ -360,7 +365,9 @@ func set_vitals(
 	_maximum_health: float,
 	stamina: float,
 	maximum_stamina: float,
-	stamina_cap: float
+	stamina_cap: float,
+	thirst: float,
+	maximum_thirst: float
 ) -> void:
 	var safe_maximum_stamina := maxf(maximum_stamina, 1.0)
 	var safe_stamina_cap := maxf(stamina_cap, safe_maximum_stamina)
@@ -371,6 +378,10 @@ func set_vitals(
 	stamina_bar.max_value = safe_stamina_cap
 	stamina_bar.value = clampf(stamina, 0.0, safe_stamina_cap)
 	stamina_value.text = "%d/%d" % [roundi(stamina), roundi(safe_maximum_stamina)]
+	var safe_maximum_thirst := maxf(maximum_thirst, 1.0)
+	thirst_bar.max_value = safe_maximum_thirst
+	thirst_bar.value = clampf(thirst, 0.0, safe_maximum_thirst)
+	thirst_value.text = "%d/%d" % [roundi(thirst), roundi(safe_maximum_thirst)]
 
 	var grow_ratio := maxf(safe_stamina_cap / _stamina_capacity_limit, 1.0)
 	var bar_width := _stamina_bar_base_width * grow_ratio
@@ -381,6 +392,10 @@ func set_vitals(
 			+ bar_width
 			- _stamina_bar_base_width
 		)
+
+
+func set_temperature(temperature: float) -> void:
+	temperature_value.text = "%.1f C" % temperature
 
 
 func show_merchant(
@@ -419,6 +434,16 @@ func is_doctor_visible() -> bool:
 
 
 func show_planting_context_menu() -> void:
+	_show_context_menu(&"plant", "Plantar")
+
+
+func show_water_context_menu() -> void:
+	_show_context_menu(&"drink", "Beber")
+
+
+func _show_context_menu(action: StringName, label: String) -> void:
+	_context_action = action
+	planting_context_button.text = label
 	var viewport_size := get_viewport_rect().size
 	var pointer := get_viewport().get_mouse_position()
 	var menu_size := planting_context_menu.get_combined_minimum_size()
@@ -432,18 +457,27 @@ func show_planting_context_menu() -> void:
 
 func hide_planting_context_menu() -> void:
 	planting_context_menu.visible = false
+	_context_action = &""
+	planting_context_button.text = "Plantar"
 
 
 func is_planting_context_visible() -> bool:
 	return planting_context_menu.visible
 
 
-func _on_planting_context_plant_requested() -> void:
-	planting_context_plant_requested.emit()
+func _on_context_button_pressed() -> void:
+	if _context_action == &"drink":
+		water_context_drink_requested.emit()
+	else:
+		planting_context_plant_requested.emit()
 
 
 func _on_planting_context_menu_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
+	if (
+		event is InputEventMouseButton
+		and event.pressed
+		and event.button_index == MOUSE_BUTTON_LEFT
+	):
 		hide_planting_context_menu()
 
 

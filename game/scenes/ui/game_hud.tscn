@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_panel.tscn" id="2_dialogue"]
@@ -52,6 +52,12 @@ bg_color = Color(0.247059, 0.701961, 0.968627, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_stamina_empty_bar"]
 bg_color = Color(0.0, 0.0, 0.0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_thirst_bar"]
+bg_color = Color(0.14902, 0.627451, 0.74902, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_thirst_empty_bar"]
+bg_color = Color(0.0352941, 0.113725, 0.141176, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_bar_transparent"]
 bg_color = Color(0.0, 0.0, 0.0, 0.0)
@@ -245,15 +251,19 @@ layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 258.0
-offset_bottom = 62.0
+offset_bottom = 122.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
 
-[node name="StaminaRow" type="HBoxContainer" parent="VitalsPanel"]
+[node name="VitalsRows" type="VBoxContainer" parent="VitalsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StaminaRow" type="HBoxContainer" parent="VitalsPanel/VitalsRows"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="StaminaCaption" type="Label" parent="VitalsPanel/StaminaRow"]
+[node name="StaminaCaption" type="Label" parent="VitalsPanel/VitalsRows/StaminaRow"]
 custom_minimum_size = Vector2(58, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.713725, 0.847059, 0.945098, 1)
@@ -261,7 +271,7 @@ theme_override_font_sizes/font_size = 11
 text = "ESTAMINA"
 vertical_alignment = 1
 
-[node name="StaminaBars" type="Control" parent="VitalsPanel/StaminaRow"]
+[node name="StaminaBars" type="Control" parent="VitalsPanel/VitalsRows/StaminaRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(108, 12)
 layout_mode = 2
@@ -269,7 +279,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 
-[node name="StaminaEmptyBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+[node name="StaminaEmptyBar" type="ProgressBar" parent="VitalsPanel/VitalsRows/StaminaRow/StaminaBars"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -283,7 +293,7 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="StaminaMaximumBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+[node name="StaminaMaximumBar" type="ProgressBar" parent="VitalsPanel/VitalsRows/StaminaRow/StaminaBars"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -297,7 +307,7 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="StaminaBar" type="ProgressBar" parent="VitalsPanel/StaminaRow/StaminaBars"]
+[node name="StaminaBar" type="ProgressBar" parent="VitalsPanel/VitalsRows/StaminaRow/StaminaBars"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -311,7 +321,7 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="StaminaValue" type="Label" parent="VitalsPanel/StaminaRow"]
+[node name="StaminaValue" type="Label" parent="VitalsPanel/VitalsRows/StaminaRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
@@ -321,12 +331,91 @@ text = "100/100"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="ThirstRow" type="HBoxContainer" parent="VitalsPanel/VitalsRows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ThirstCaption" type="Label" parent="VitalsPanel/VitalsRows/ThirstRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.847059, 0.945098, 1)
+theme_override_font_sizes/font_size = 11
+text = "SED"
+vertical_alignment = 1
+
+[node name="ThirstBars" type="Control" parent="VitalsPanel/VitalsRows/ThirstRow"]
+custom_minimum_size = Vector2(108, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="ThirstEmptyBar" type="ProgressBar" parent="VitalsPanel/VitalsRows/ThirstRow/ThirstBars"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBox_thirst_empty_bar")
+theme_override_styles/fill = SubResource("StyleBox_thirst_empty_bar")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="ThirstBar" type="ProgressBar" parent="VitalsPanel/VitalsRows/ThirstRow/ThirstBars"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBox_bar_transparent")
+theme_override_styles/fill = SubResource("StyleBox_thirst_bar")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="ThirstValue" type="Label" parent="VitalsPanel/VitalsRows/ThirstRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.88)
+theme_override_font_sizes/font_size = 11
+text = "100/100"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TemperatureRow" type="HBoxContainer" parent="VitalsPanel/VitalsRows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TemperatureCaption" type="Label" parent="VitalsPanel/VitalsRows/TemperatureRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.686275, 0.376471, 1)
+theme_override_font_sizes/font_size = 11
+text = "TEMP."
+vertical_alignment = 1
+
+[node name="TemperatureValue" type="Label" parent="VitalsPanel/VitalsRows/TemperatureRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(108, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.88)
+theme_override_font_sizes/font_size = 11
+text = "27.5 C"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="ToolPanel" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 12.0
-offset_top = 110.0
+offset_top = 138.0
 offset_right = 194.0
-offset_bottom = 154.0
+offset_bottom = 182.0
 visible = false
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
@@ -344,9 +433,9 @@ vertical_alignment = 1
 [node name="WalletPanel" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 12.0
-offset_top = 162.0
+offset_top = 190.0
 offset_right = 194.0
-offset_bottom = 206.0
+offset_bottom = 234.0
 visible = false
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")

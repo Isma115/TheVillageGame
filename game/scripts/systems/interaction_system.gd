@@ -74,6 +74,17 @@ func update_interactions(delta: float) -> void:
 		_refresh_target()
 
 
+func interact_current_tree() -> bool:
+	if not _is_current_valid():
+		return false
+	var tree := _current as TreeActor
+	if tree == null:
+		return false
+	tree.interact(_source)
+	_refresh_target()
+	return true
+
+
 func register_interactable(target: InteractableActor) -> void:
 	if target == null:
 		return
