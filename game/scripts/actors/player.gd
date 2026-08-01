@@ -25,6 +25,7 @@ signal vitals_changed(
 var catalog: GameCatalog
 var collision_world: CollisionWorld
 var input_state: InputState
+var sound_service: SoundService
 var velocity := Vector2.ZERO
 var facing := Vector2.DOWN
 var animation_time := 0.0
@@ -120,6 +121,8 @@ func update_player(delta: float) -> void:
 		facing = direction
 		distance_travelled += actual_distance
 		animation_time += delta * (12.0 if sprinting else 8.0)
+		if sound_service != null:
+			sound_service.accumulate_footstep(actual_distance, sprinting)
 		if sprinting:
 			actor_state = &"running"
 		elif exhausted:

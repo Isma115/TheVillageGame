@@ -405,6 +405,20 @@ func _validate_planting_flow() -> PackedStringArray:
 			_planting_system.restore(mature_snapshot)
 			if _planting_system.mature_crop_count() != 1:
 				errors.append("El cultivo maduro no se restauró desde el guardado.")
+			var product := inventory.definition_for(crop_definition.harvest_item_id)
+			if product == null:
+				errors.append("El cultivo '%s' no tiene producto de cosecha." % crop_definition.id)
+			else:
+				var product_before := inventory.quantity_of(product.id)
+				var harvest_result := _planting_system.harvest_crop(
+					_game_world.tile_center(crop_cell)
+				)
+				if not bool(harvest_result.get("harvested", false)):
+					errors.append("No se pudo cosechar el cultivo '%s'." % crop_definition.id)
+				if _planting_system.mature_crop_count() != 0:
+					errors.append("El cultivo cosechado no desapareció del mundo.")
+				if inventory.quantity_of(product.id) != product_before + 1:
+					errors.append("Cosechar no agregó el producto al inventario.")
 	_planting_system.clear()
 	inventory.restore(inventory_snapshot)
 	return errors
@@ -452,9 +466,12 @@ func _validate_doctor_flow() -> PackedStringArray:
 			errors.append("El informe médico no muestra la estamina máxima.")
 		if str(report.get("health_status", "")).is_empty():
 			errors.append("El informe médico no muestra el estado de salud.")
-		_game_hud.show_doctor(doctor, report)
+		_game_hud.show_doctor(doctor)
 		if not _game_hud.is_doctor_visible():
-			errors.append("La interfaz de consulta médica no se hizo visible.")
+			errors.append("El menú del médico no se hizo visible.")
+		_game_hud.show_doctor_report(doctor, report)
+		if not _game_hud.is_doctor_visible():
+			errors.append("El informe médico no se hizo visible.")
 		_game_hud.hide_doctor()
 		_doctor_service.close()
 

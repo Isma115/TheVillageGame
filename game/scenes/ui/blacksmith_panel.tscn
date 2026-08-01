@@ -40,6 +40,25 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_cooldown_track"]
+bg_color = Color(0.047059, 0.117647, 0.07451, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.945098, 0.956863, 0.866667, 0.2)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_cooldown_fill"]
+bg_color = Color(0.941176, 0.776471, 0.360784, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [node name="BlacksmithPanel" type="PanelContainer"]
 visible = false
 custom_minimum_size = Vector2(430, 580)
@@ -76,10 +95,28 @@ theme_override_font_sizes/font_size = 12
 text = "La zona verde se mueve. Golpea con precisión."
 horizontal_alignment = 1
 
-[node name="BlacksmithMeter" type="Control" parent="Rows"]
-unique_name_in_owner = true
+[node name="MeterRow" type="HBoxContainer" parent="Rows"]
 custom_minimum_size = Vector2(0, 330)
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="StrikeCooldownBar" type="ProgressBar" parent="Rows/MeterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/background = SubResource("StyleBox_cooldown_track")
+theme_override_styles/fill = SubResource("StyleBox_cooldown_fill")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+fill_mode = 3
+
+[node name="BlacksmithMeter" type="Control" parent="Rows/MeterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 0
 script = ExtResource("2_meter")
@@ -111,6 +148,14 @@ text = "Haz clic en la zona verde."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="BlacksmithBars" type="Label" parent="Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "Barras forjadas: 0/40"
+horizontal_alignment = 1
 
 [node name="BlacksmithClose" type="Button" parent="Rows"]
 unique_name_in_owner = true

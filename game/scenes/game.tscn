@@ -42,6 +42,10 @@ unique_name_in_owner = true
 script = ExtResource("3_world")
 house_scene = ExtResource("4_house")
 
+[node name="GroundActorLayer" type="Node2D" parent="Areas/OverworldArea"]
+unique_name_in_owner = true
+y_sort_enabled = true
+
 [node name="InteractionHighlight" type="Node2D" parent="Areas/OverworldArea"]
 unique_name_in_owner = true
 script = ExtResource("5_highlight")

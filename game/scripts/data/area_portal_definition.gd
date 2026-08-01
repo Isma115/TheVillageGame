@@ -20,6 +20,7 @@ class_name AreaPortalDefinition
 @export var render_rect := Rect2(-64.0, -84.0, 128.0, 96.0)
 @export var collision_rect := Rect2()
 @export var accent_color := Color("#d6ad72")
+@export var visible := true
 
 
 func world_render_rect() -> Rect2:

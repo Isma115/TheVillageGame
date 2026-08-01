@@ -12,11 +12,16 @@ signal merchant_buy_requested(offer_id: StringName)
 signal merchant_sell_requested(offer_id: StringName)
 signal merchant_close_requested
 signal doctor_close_requested
+signal doctor_diagnosis_requested
 signal planting_seed_selected(seed_id: StringName)
 signal planting_close_requested
+signal planting_context_plant_requested
 signal inventory_close_requested
 signal blacksmith_coin_earned
 signal blacksmith_close_requested
+signal volume_changed(master_volume: float, sfx_volume: float)
+signal volume_preview_requested
+signal options_closed
 
 @onready var debug_panel: PanelContainer = %DebugPanel
 @onready var debug_fps: Label = %DebugFps
@@ -34,8 +39,6 @@ signal blacksmith_close_requested
 @onready var interaction_label: Label = %InteractionLabel
 @onready var notification_panel: PanelContainer = %NotificationPanel
 @onready var notification_label: Label = %NotificationLabel
-@onready var tool_label: Label = %ToolLabel
-@onready var wallet_label: Label = %WalletLabel
 @onready var stamina_bar: ProgressBar = %StaminaBar
 @onready var stamina_maximum_bar: ProgressBar = %StaminaMaximumBar
 @onready var stamina_empty_bar: ProgressBar = %StaminaEmptyBar
@@ -54,12 +57,19 @@ signal blacksmith_close_requested
 @onready var continue_button: Button = %ContinueButton
 @onready var save_button: Button = %SaveButton
 @onready var exit_button: Button = %ExitButton
+@onready var options_button: Button = %OptionsButton
+@onready var options_dialog: PanelContainer = %OptionsDialog
+@onready var master_volume_slider: HSlider = %MasterVolumeSlider
+@onready var sfx_volume_slider: HSlider = %SfxVolumeSlider
+@onready var options_back_button: Button = %OptionsBackButton
 @onready var save_accept_button: Button = %SaveAcceptButton
 @onready var save_cancel_button: Button = %SaveCancelButton
 @onready var dialogue_panel: DialoguePanel = %DialoguePanel
 @onready var merchant_panel: MerchantPanel = %MerchantPanel
 @onready var doctor_panel: DoctorPanel = %DoctorPanel
 @onready var planting_panel: PlantingPanel = %PlantingPanel
+@onready var planting_context_menu: PanelContainer = %PlantingContextMenu
+@onready var planting_context_button: Button = %PlantingContextButton
 @onready var blacksmith_panel: BlacksmithPanel = %BlacksmithPanel
 @onready var hunting_cursor: HuntingCursor = %HuntingCursor
 @onready var hunting_hint: PanelContainer = %HuntingHint
@@ -82,6 +92,12 @@ func _ready() -> void:
 	continue_button.pressed.connect(resume_game)
 	save_button.pressed.connect(_open_save_confirmation)
 	exit_button.pressed.connect(_open_exit_confirmation)
+	options_button.pressed.connect(open_options)
+	options_back_button.pressed.connect(close_options)
+	master_volume_slider.value_changed.connect(_on_master_volume_changed)
+	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
+	master_volume_slider.drag_ended.connect(_on_volume_drag_ended)
+	sfx_volume_slider.drag_ended.connect(_on_volume_drag_ended)
 	save_accept_button.pressed.connect(_on_save_accept_pressed)
 	save_cancel_button.pressed.connect(_on_save_cancel_pressed)
 	dialogue_panel.choice_selected.connect(_on_dialogue_choice_selected)
@@ -91,8 +107,11 @@ func _ready() -> void:
 	merchant_panel.sell_requested.connect(_on_merchant_sell_requested)
 	merchant_panel.close_requested.connect(_on_merchant_close_requested)
 	doctor_panel.close_requested.connect(_on_doctor_close_requested)
+	doctor_panel.diagnosis_requested.connect(_on_doctor_diagnosis_requested)
 	planting_panel.seed_selected.connect(_on_planting_seed_selected)
 	planting_panel.close_requested.connect(_on_planting_close_requested)
+	planting_context_button.pressed.connect(_on_planting_context_plant_requested)
+	planting_context_menu.gui_input.connect(_on_planting_context_menu_gui_input)
 	blacksmith_panel.coin_earned.connect(_on_blacksmith_coin_earned)
 	blacksmith_panel.close_requested.connect(_on_blacksmith_close_requested)
 	inventory_close_button.pressed.connect(_on_inventory_close_requested)
@@ -110,6 +129,7 @@ func initialize(
 	pause_overlay.visible = false
 	pause_menu.visible = true
 	save_dialog.visible = false
+	options_dialog.visible = false
 	pause_status.text = ""
 	interaction_prompt.visible = false
 	notification_panel.visible = false
@@ -141,6 +161,7 @@ func open_pause_menu() -> void:
 	pause_overlay.visible = true
 	pause_menu.visible = true
 	save_dialog.visible = false
+	options_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(true)
@@ -154,9 +175,48 @@ func resume_game() -> void:
 	pause_overlay.visible = false
 	pause_menu.visible = true
 	save_dialog.visible = false
+	options_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(false)
+
+
+func open_options() -> void:
+	if not _pause_open or options_dialog.visible:
+		return
+	pause_menu.visible = false
+	options_dialog.visible = true
+	options_back_button.grab_focus()
+
+
+func close_options() -> void:
+	if not _pause_open or not options_dialog.visible:
+		return
+	options_dialog.visible = false
+	pause_menu.visible = true
+	options_button.grab_focus()
+	options_closed.emit()
+
+
+func is_options_visible() -> bool:
+	return options_dialog.visible
+
+
+func set_volume_values(master_volume: float, sfx_volume: float) -> void:
+	master_volume_slider.set_value_no_signal(clampf(master_volume, 0.0, 1.0))
+	sfx_volume_slider.set_value_no_signal(clampf(sfx_volume, 0.0, 1.0))
+
+
+func _on_master_volume_changed(value: float) -> void:
+	volume_changed.emit(value, sfx_volume_slider.value)
+
+
+func _on_sfx_volume_changed(value: float) -> void:
+	volume_changed.emit(master_volume_slider.value, value)
+
+
+func _on_volume_drag_ended(_value_changed: bool) -> void:
+	volume_preview_requested.emit()
 
 
 func is_save_confirmation_visible() -> bool:
@@ -168,6 +228,7 @@ func cancel_save_confirmation() -> void:
 		return
 	save_dialog.visible = false
 	pause_menu.visible = true
+	options_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	save_button.grab_focus()
@@ -178,6 +239,7 @@ func show_save_result(success: bool, message: String) -> void:
 		return
 	save_dialog.visible = false
 	pause_menu.visible = true
+	options_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = message
 	pause_status.modulate = Color("#d9ec70" if success else "#ff9d8d")
@@ -239,21 +301,11 @@ func set_location(label: String) -> void:
 	location_label.text = label.to_upper()
 
 
-func set_tool(tool: ToolDefinition, durability: int) -> void:
-	if tool == null:
-		tool_label.text = "Sin herramienta"
-		return
-
-	var ratio := float(durability) / float(maxi(tool.maximum_durability, 1))
-	tool_label.text = "%s  %d/%d" % [tool.label, durability, tool.maximum_durability]
-	tool_label.add_theme_color_override(
-		"font_color",
-		Color("#ff9d8d") if ratio <= 0.2 else tool.display_color
-	)
+func set_tool(_tool: ToolDefinition, _durability: int) -> void:
+	pass
 
 
 func set_wallet(balance: int) -> void:
-	wallet_label.text = "Monedas  %d" % balance
 	inventory_wallet_label.text = "Monedas  %d" % balance
 
 
@@ -333,7 +385,11 @@ func is_merchant_visible() -> bool:
 	return merchant_panel.visible
 
 
-func show_doctor(doctor: DoctorDefinition, report: Dictionary) -> void:
+func show_doctor(doctor: DoctorDefinition) -> void:
+	doctor_panel.show_doctor_menu(doctor)
+
+
+func show_doctor_report(doctor: DoctorDefinition, report: Dictionary) -> void:
 	doctor_panel.show_consultation(doctor, report)
 
 
@@ -343,6 +399,35 @@ func hide_doctor() -> void:
 
 func is_doctor_visible() -> bool:
 	return doctor_panel.visible
+
+
+func show_planting_context_menu() -> void:
+	var viewport_size := get_viewport_rect().size
+	var pointer := get_viewport().get_mouse_position()
+	var menu_size := planting_context_menu.get_combined_minimum_size()
+	planting_context_menu.position = Vector2(
+		clampf(pointer.x + 12.0, 0.0, maxf(viewport_size.x - menu_size.x, 0.0)),
+		clampf(pointer.y + 12.0, 0.0, maxf(viewport_size.y - menu_size.y, 0.0))
+	)
+	planting_context_menu.visible = true
+	planting_context_button.grab_focus()
+
+
+func hide_planting_context_menu() -> void:
+	planting_context_menu.visible = false
+
+
+func is_planting_context_visible() -> bool:
+	return planting_context_menu.visible
+
+
+func _on_planting_context_plant_requested() -> void:
+	planting_context_plant_requested.emit()
+
+
+func _on_planting_context_menu_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		hide_planting_context_menu()
 
 
 func show_planting(cell: Vector2i, options: Array[Dictionary]) -> void:
@@ -582,6 +667,10 @@ func _on_merchant_close_requested() -> void:
 
 func _on_doctor_close_requested() -> void:
 	doctor_close_requested.emit()
+
+
+func _on_doctor_diagnosis_requested() -> void:
+	doctor_diagnosis_requested.emit()
 
 
 func _on_planting_seed_selected(seed_id: StringName) -> void:

@@ -15,6 +15,7 @@ var _vein_sites: Dictionary = {}
 var _interaction_system: InteractionSystem
 var _inventory: InventoryService
 var _tool_service: ToolService
+var sound_service: SoundService
 
 
 func initialize(
@@ -221,6 +222,8 @@ func _on_vein_interaction_requested(target: Node2D, source: Node2D) -> void:
 		return
 	if _tool_service.try_use_capability(&"mine") == null:
 		return
+	if sound_service != null:
+		sound_service.play_mining_hit()
 	if not vein.apply_mining_hit(site.definition.base_mining_damage):
 		return
 

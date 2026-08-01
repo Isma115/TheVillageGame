@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_panel.tscn" id="2_dialogue"]
@@ -48,13 +48,31 @@ shadow_size = 7
 bg_color = Color(0.172549, 0.560784, 0.831373, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_stamina_maximum_bar"]
-bg_color = Color(0.345098, 0.584314, 0.701961, 1)
+bg_color = Color(0.247059, 0.701961, 0.968627, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_stamina_empty_bar"]
 bg_color = Color(0.0, 0.0, 0.0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_bar_transparent"]
 bg_color = Color(0.0, 0.0, 0.0, 0.0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_context_menu"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+bg_color = Color(0.0941176, 0.172549, 0.113725, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85098, 0.92549, 0.439216, 0.6)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.3)
+shadow_size = 6
 
 [node name="GameHud" type="Control"]
 layout_mode = 3
@@ -307,6 +325,7 @@ offset_left = 12.0
 offset_top = 110.0
 offset_right = 194.0
 offset_bottom = 154.0
+visible = false
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
 
@@ -326,6 +345,7 @@ offset_left = 12.0
 offset_top = 162.0
 offset_right = 194.0
 offset_bottom = 206.0
+visible = false
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
 
@@ -576,6 +596,12 @@ custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "Guardar"
 
+[node name="OptionsButton" type="Button" parent="PauseOverlay/PauseCenter/PauseMenu/PauseRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Opciones"
+
 [node name="ExitButton" type="Button" parent="PauseOverlay/PauseCenter/PauseMenu/PauseRows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
@@ -636,6 +662,69 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Cancelar"
 
+[node name="OptionsDialog" type="PanelContainer" parent="PauseOverlay/PauseCenter"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
+[node name="OptionsRows" type="VBoxContainer" parent="PauseOverlay/PauseCenter/OptionsDialog"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="OptionsHeading" type="Label" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 18
+text = "OPCIONES"
+horizontal_alignment = 1
+
+[node name="MasterRow" type="VBoxContainer" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MasterLabel" type="Label" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows/MasterRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Volumen general"
+
+[node name="MasterVolumeSlider" type="HSlider" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows/MasterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="SfxRow" type="VBoxContainer" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SfxLabel" type="Label" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows/SfxRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Volumen de efectos"
+
+[node name="SfxVolumeSlider" type="HSlider" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="OptionsBackButton" type="Button" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Volver"
+
 [node name="DialoguePanel" parent="." instance=ExtResource("2_dialogue")]
 unique_name_in_owner = true
 
@@ -674,3 +763,19 @@ grow_vertical = 2
 mouse_filter = 1
 z_index = 1000
 color = Color(0, 0, 0, 0)
+
+[node name="PlantingContextMenu" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 126.0
+offset_bottom = 48.0
+z_index = 900
+theme_override_styles/panel = SubResource("StyleBox_context_menu")
+
+[node name="PlantingContextButton" type="Button" parent="PlantingContextMenu"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Plantar"

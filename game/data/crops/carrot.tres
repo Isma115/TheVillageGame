@@ -8,6 +8,7 @@ script = ExtResource("1_crop")
 id = &"carrot"
 seed_id = &"carrot_seed"
 label = "zanahoria"
+harvest_item_id = &"carrot"
 growth_time = 55.0
 grown_texture = ExtResource("2_texture")
 sprite_render_size = 64.0

@@ -6,27 +6,42 @@ signal strike_requested
 const GREEN_ZONE_HEIGHT := 0.16
 const MARKER_HEIGHT := 0.018
 
+@export_range(0.20, 0.60, 0.01) var marker_speed_min := 0.35
+@export_range(0.80, 2.40, 0.01) var marker_speed_max := 2.00
+@export_range(0.08, 0.30, 0.01) var green_speed_min := 0.14
+@export_range(0.30, 1.40, 0.01) var green_speed_max := 0.95
+
 var _active := false
 var _marker_progress := 0.22
 var _marker_velocity := 0.82
 var _green_progress := 0.58
 var _green_velocity := -0.31
+var _random := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	focus_mode = Control.FOCUS_ALL
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_random.randomize()
 	set_process(false)
 
 
 func start() -> void:
 	_active = true
 	_marker_progress = 0.22
-	_marker_velocity = 0.82
 	_green_progress = 0.58
-	_green_velocity = -0.31
+	randomize_speeds()
 	set_process(true)
 	queue_redraw()
+
+
+func randomize_speeds() -> void:
+	_marker_velocity = _biased_range(marker_speed_min, marker_speed_max)
+	_green_velocity = -_biased_range(green_speed_min, green_speed_max)
+
+
+func _biased_range(min_value: float, max_value: float) -> float:
+	var bias := _random.randf()
+	return lerpf(min_value, max_value, bias * bias)
 
 
 func stop() -> void:
@@ -62,26 +77,6 @@ func _process(delta: float) -> void:
 		_green_velocity = -absf(_green_velocity)
 
 	queue_redraw()
-
-
-func _gui_input(event: InputEvent) -> void:
-	if not _active:
-		return
-	if (
-		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_LEFT
-		and event.pressed
-	):
-		strike_requested.emit()
-		accept_event()
-	elif (
-		event is InputEventKey
-		and event.pressed
-		and not event.echo
-		and (event.keycode == KEY_SPACE or event.keycode == KEY_ENTER)
-	):
-		strike_requested.emit()
-		accept_event()
 
 
 func _draw() -> void:

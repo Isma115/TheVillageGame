@@ -5,6 +5,7 @@ class_name CropDefinition
 @export var id: StringName = &"crop"
 @export var seed_id: StringName = &"crop_seed"
 @export var label := "Cultivo"
+@export var harvest_item_id: StringName = &""
 
 @export_group("Crecimiento")
 @export_range(1.0, 999999.0, 1.0) var growth_time := 45.0
@@ -21,6 +22,8 @@ func validate() -> PackedStringArray:
 		errors.append("Un cultivo no tiene id.")
 	if String(seed_id).is_empty():
 		errors.append("El cultivo '%s' no tiene semilla configurada." % id)
+	if String(harvest_item_id).is_empty():
+		errors.append("El cultivo '%s' no tiene objeto de cosecha configurado." % id)
 	if label.strip_edges().is_empty():
 		errors.append("El cultivo '%s' no tiene nombre visible." % id)
 	if growth_time <= 0.0:

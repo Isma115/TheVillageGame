@@ -49,26 +49,13 @@ func set_interaction_focused(focused: bool) -> void:
 
 
 func _draw() -> void:
-	if definition == null:
+	if definition == null or not definition.visible:
 		return
 
 	if definition.visual_style == "sprite" and definition.texture != null:
 		draw_texture_rect(definition.texture, definition.render_rect, false)
 	else:
 		_draw_stairs()
-
-	if _focused:
-		var radius := minf(definition.render_rect.size.x * 0.28, 54.0)
-		draw_arc(
-			definition.interaction_offset,
-			maxf(radius, 30.0),
-			0.0,
-			TAU,
-			40,
-			Color(1.0, 1.0, 1.0, 0.88),
-			3.0,
-			true
-		)
 
 
 func _draw_stairs() -> void:

@@ -8,6 +8,7 @@ script = ExtResource("1_crop")
 id = &"tomato"
 seed_id = &"tomato_seed"
 label = "tomate"
+harvest_item_id = &"tomato"
 growth_time = 45.0
 grown_texture = ExtResource("2_texture")
 sprite_render_size = 64.0

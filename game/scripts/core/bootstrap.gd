@@ -5,8 +5,6 @@ class_name GameBootstrap
 
 @onready var status_label: Label = %LoadingStatus
 @onready var progress_bar: ProgressBar = %LoadingProgress
-@onready var percent_label: Label = %LoadingPercent
-@onready var loading_panel: PanelContainer = %LoadingPanel
 
 var _loading_started := false
 
@@ -23,7 +21,7 @@ func _begin_loading() -> void:
 		return
 
 	_loading_started = true
-	_update_progress(0.0, "Preparando recursos")
+	_update_progress(0.0, "Cargando...")
 	set_process(true)
 
 
@@ -37,11 +35,11 @@ func _process(_delta: float) -> void:
 
 	match status:
 		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-			_update_progress(amount, "Cargando la villa")
+			_update_progress(amount, "Cargando...")
 		ResourceLoader.THREAD_LOAD_LOADED:
 			_loading_started = false
 			set_process(false)
-			_update_progress(1.0, "Todo listo")
+			_update_progress(1.0, "Listo")
 			call_deferred("_open_game")
 		ResourceLoader.THREAD_LOAD_FAILED:
 			_show_error("No se pudieron cargar todos los recursos.")
@@ -61,10 +59,7 @@ func _open_game() -> void:
 
 
 func _update_progress(amount: float, message: String) -> void:
-	var normalized := clampf(amount, 0.0, 1.0)
-	var percentage := roundi(normalized * 100.0)
-	progress_bar.value = percentage
-	percent_label.text = "%d%%" % percentage
+	progress_bar.value = roundi(clampf(amount, 0.0, 1.0) * 100.0)
 	status_label.text = message
 
 
@@ -73,14 +68,4 @@ func _show_error(message: String) -> void:
 	set_process(false)
 	status_label.text = message
 	status_label.add_theme_color_override("font_color", Color("#db846d"))
-	var fill_style := progress_bar.get_theme_stylebox("fill")
-	if fill_style is StyleBoxFlat:
-		var error_fill := fill_style.duplicate() as StyleBoxFlat
-		error_fill.bg_color = Color("#db846d")
-		progress_bar.add_theme_stylebox_override("fill", error_fill)
-	var panel_style := loading_panel.get_theme_stylebox("panel")
-	if panel_style is StyleBoxFlat:
-		var error_panel := panel_style.duplicate() as StyleBoxFlat
-		error_panel.border_color = Color("#db846d")
-		loading_panel.add_theme_stylebox_override("panel", error_panel)
 	push_error(message)

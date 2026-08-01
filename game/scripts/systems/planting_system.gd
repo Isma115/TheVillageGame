@@ -3,6 +3,8 @@ class_name PlantingSystem
 
 const TREE_SEED_ID: StringName = &"tree_seed"
 
+signal crop_harvested(item: ItemDefinition, amount: int)
+
 var _catalog: GameCatalog
 var _world: GameWorld
 var _actor_layer: Node2D
@@ -10,6 +12,7 @@ var _collision_world: CollisionWorld
 var _inventory: InventoryService
 var _forestry_system: ForestrySystem
 var _player: PlayerActor
+var _interaction_system: InteractionSystem
 var _plots: Dictionary = {}
 var _mature_crops: Dictionary = {}
 
@@ -21,7 +24,8 @@ func initialize(
 	collision_world: CollisionWorld,
 	inventory: InventoryService,
 	forestry_system: ForestrySystem,
-	player: PlayerActor
+	player: PlayerActor,
+	interaction_system: InteractionSystem
 ) -> void:
 	_clear_plots()
 	_catalog = game_catalog
@@ -31,6 +35,7 @@ func initialize(
 	_inventory = inventory
 	_forestry_system = forestry_system
 	_player = player
+	_interaction_system = interaction_system
 
 
 func update(delta: float) -> void:
@@ -144,6 +149,34 @@ func plant_seed(world_position: Vector2, seed_id: StringName) -> String:
 		crop_label,
 		roundi(duration)
 	]
+
+
+func harvest_crop(world_position: Vector2) -> Dictionary:
+	var cell := cell_for_world_position(world_position)
+	var crop: Dictionary = _mature_crops.get(cell, {})
+	if crop.is_empty():
+		return {"harvested": false, "message": "Aquí no hay un cultivo listo para recoger."}
+	var actor := crop.get("actor") as CropActor
+	if is_instance_valid(actor):
+		if _interaction_system != null:
+			_interaction_system.unregister_interactable(actor)
+		actor.queue_free()
+	_mature_crops.erase(cell)
+	var seed_id := StringName(str(crop.get("seed_id", "")))
+	var definition := _crop_for_seed(seed_id)
+	if definition == null:
+		return {"harvested": false, "message": "El cultivo no tiene producto configurado."}
+	var item := _inventory.definition_for(definition.harvest_item_id) if _inventory != null else null
+	if item == null:
+		return {"harvested": false, "message": "El cultivo no tiene producto registrado."}
+	var amount := _inventory.add_item(item, 1)
+	crop_harvested.emit(item, amount)
+	return {
+		"harvested": true,
+		"item": item,
+		"amount": amount,
+		"message": "Has recogido %s." % item.label
+	}
 
 
 func plot_count() -> int:
@@ -285,6 +318,8 @@ func _clear_plots() -> void:
 		var crop: Dictionary = crop_value
 		var actor := crop.get("actor") as CropActor
 		if is_instance_valid(actor):
+			if _interaction_system != null:
+				_interaction_system.unregister_interactable(actor)
 			actor.queue_free()
 	_mature_crops.clear()
 
@@ -327,7 +362,11 @@ func _spawn_mature_crop(
 		return null
 	var actor := CropActor.new()
 	actor.initialize(definition, world_position)
+	actor.crop_cell = cell
 	_actor_layer.add_child(actor)
+	actor.interaction_requested.connect(_on_crop_interaction_requested)
+	if _interaction_system != null:
+		_interaction_system.register_interactable(actor)
 	_mature_crops[cell] = {
 		"cell": cell,
 		"position": world_position,
@@ -335,3 +374,10 @@ func _spawn_mature_crop(
 		"actor": actor
 	}
 	return actor
+
+
+func _on_crop_interaction_requested(target: Node2D, source: Node2D) -> void:
+	var actor := target as CropActor
+	if actor == null or not actor.can_interact(source):
+		return
+	harvest_crop(actor.global_position)

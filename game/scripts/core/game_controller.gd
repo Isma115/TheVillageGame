@@ -11,6 +11,7 @@ const SMOKE_TEST_ARGUMENT := "--smoke-test"
 @onready var overworld_area: Node2D = %OverworldArea
 @onready var game_world: GameWorld = %GameWorld
 @onready var interaction_highlight: InteractionHighlight = %InteractionHighlight
+@onready var ground_actor_layer: Node2D = %GroundActorLayer
 @onready var overworld_actor_layer: Node2D = %OverworldActorLayer
 @onready var wildlife: WildlifeManager = %Wildlife
 @onready var interaction_system: InteractionSystem = %InteractionSystem
@@ -28,6 +29,7 @@ var mine_runtimes: Array[MineAreaRuntime] = []
 var hotel_runtime: WorldAreaRuntime
 var input_state := InputState.new()
 var inventory := InventoryService.new()
+var sound_service := SoundService.new()
 var tool_service := ToolService.new()
 var wallet := WalletService.new()
 var merchant_service := MerchantService.new()
@@ -48,6 +50,7 @@ var mobile_controls_before_hotel_sleep := false
 var hotel_sleeping := false
 var planting_position := Vector2.ZERO
 var blacksmith_spot: BlacksmithSpotActor
+var _anvil_bars_completed := 0
 
 
 func _ready() -> void:
@@ -56,6 +59,7 @@ func _ready() -> void:
 
 	RenderingServer.set_default_clear_color(catalog.grass_color)
 	mobile_build = OS.has_feature("android") or OS.has_feature("ios") or OS.has_feature("mobile")
+	add_child(sound_service)
 
 	_initialize_world()
 	_initialize_interface()
@@ -131,6 +135,7 @@ func _initialize_interface() -> void:
 	npc_dialogue_system.dialogue_finished.connect(_on_dialogue_finished)
 	npc_dialogue_system.merchant_requested.connect(_on_merchant_requested)
 	npc_dialogue_system.doctor_requested.connect(_on_doctor_requested)
+	game_hud.doctor_diagnosis_requested.connect(_on_doctor_diagnosis_requested)
 	hunting_system.hunting_mode_changed.connect(_on_hunting_mode_changed)
 	inventory.item_changed.connect(game_hud.set_inventory_item)
 	inventory.item_changed.connect(_on_inventory_item_changed)
@@ -160,9 +165,19 @@ func _initialize_interface() -> void:
 	game_hud.doctor_close_requested.connect(_close_doctor)
 	game_hud.planting_seed_selected.connect(_on_planting_seed_selected)
 	game_hud.planting_close_requested.connect(_close_planting)
+	game_hud.planting_context_plant_requested.connect(
+		_on_planting_context_plant_requested
+	)
 	game_hud.inventory_close_requested.connect(_close_inventory)
 	game_hud.blacksmith_coin_earned.connect(_on_blacksmith_coin_earned)
 	game_hud.blacksmith_close_requested.connect(_close_blacksmith)
+	game_hud.volume_changed.connect(_on_volume_changed)
+	game_hud.volume_preview_requested.connect(_on_volume_preview_requested)
+	game_hud.options_closed.connect(_on_options_closed)
+	game_hud.set_volume_values(
+		sound_service.master_volume(),
+		sound_service.sfx_volume()
+	)
 
 	mobile_controls.direction_changed.connect(input_state.set_virtual_direction)
 	mobile_controls.sprint_changed.connect(input_state.set_virtual_sprinting)
@@ -173,6 +188,7 @@ func _initialize_interface() -> void:
 
 func _initialize_player_and_interactions() -> void:
 	player.initialize(catalog, overworld_collision_world, input_state)
+	player.sound_service = sound_service
 	interaction_system.prompt_changed.connect(game_hud.set_interaction_prompt)
 	interaction_system.prompt_changed.connect(mobile_controls.set_primary_action)
 	interaction_system.initialize(player, input_state)
@@ -181,6 +197,8 @@ func _initialize_player_and_interactions() -> void:
 func _initialize_areas() -> bool:
 	world_area_system.initialize(player, interaction_system)
 	mining_system.initialize(interaction_system, inventory, tool_service)
+	mining_system.sound_service = sound_service
+	game_hud.blacksmith_panel.sound_service = sound_service
 	if world_area_system.register_area(
 		GameCatalog.OVERWORLD_AREA_ID,
 		"Aldea",
@@ -325,12 +343,14 @@ func _initialize_gameplay_systems() -> void:
 	planting_system.initialize(
 		catalog,
 		game_world,
-		overworld_actor_layer,
+		ground_actor_layer,
 		overworld_collision_world,
 		inventory,
 		forestry_system,
-		player
+		player,
+		interaction_system
 	)
+	planting_system.crop_harvested.connect(_on_crop_harvested)
 	wildlife.initialize(
 		catalog.animal_definitions(),
 		overworld_actor_layer,
@@ -381,6 +401,9 @@ func _process(delta: float) -> void:
 
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if sound_service != null:
+			sound_service.save_settings()
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and input_state != null:
 		input_state.reset_virtual_controls()
 
@@ -414,6 +437,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
+	if game_hud.is_planting_context_visible():
+		if _is_pause_event(event):
+			_hide_planting_context_menu()
+			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventMouseButton and event.pressed:
+			_hide_planting_context_menu()
+			get_viewport().set_input_as_handled()
+			return
+
 	if game_hud.is_planting_visible():
 		if _is_pause_event(event):
 			_close_planting()
@@ -429,6 +462,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _is_pause_event(event):
 		if game_hud.is_save_confirmation_visible():
 			game_hud.cancel_save_confirmation()
+		elif game_hud.is_options_visible():
+			game_hud.close_options()
 		elif game_paused:
 			game_hud.resume_game()
 		else:
@@ -445,7 +480,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _is_planting_request_event(event):
 		var pointer_position := player.get_global_mouse_position()
 		if planting_system.can_plant_at(pointer_position):
-			_open_planting(pointer_position)
+			_show_planting_context_menu(pointer_position)
 		get_viewport().set_input_as_handled()
 		return
 	if _is_hunting_shot_event(event):
@@ -516,6 +551,7 @@ func _on_pause_state_changed(paused: bool) -> void:
 
 
 func _on_dialogue_started() -> void:
+	_hide_planting_context_menu()
 	mobile_controls_before_dialogue = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
 	player.stop_movement()
@@ -537,6 +573,7 @@ func _on_merchant_requested(
 ) -> void:
 	if merchant_service.is_open() or not merchant_service.open(merchant):
 		return
+	_hide_planting_context_menu()
 
 	mobile_controls_before_merchant = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
@@ -557,14 +594,24 @@ func _on_doctor_requested(
 		or not doctor_service.open(doctor)
 	):
 		return
+	_hide_planting_context_menu()
 
 	mobile_controls_before_doctor = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
 	player.stop_movement()
 	interaction_system.set_enabled(false)
 	mobile_controls.set_enabled(false)
-	game_hud.show_doctor(doctor, doctor_service.consult(player))
+	game_hud.show_doctor(doctor)
 	_refresh_hunting_mode_display()
+
+
+func _on_doctor_diagnosis_requested() -> void:
+	if not doctor_service.is_open():
+		return
+	var doctor := doctor_service.active_doctor()
+	if doctor == null:
+		return
+	game_hud.show_doctor_report(doctor, doctor_service.consult(player))
 
 
 func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
@@ -578,11 +625,13 @@ func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
 		or game_hud.is_inventory_visible()
 	):
 		return
+	_hide_planting_context_menu()
 	mobile_controls_before_blacksmith = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
 	player.stop_movement()
 	interaction_system.set_enabled(false)
 	mobile_controls.set_enabled(false)
+	game_hud.blacksmith_panel.set_bars_completed(_anvil_bars_completed)
 	game_hud.show_blacksmith()
 	_refresh_hunting_mode_display()
 
@@ -590,6 +639,35 @@ func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
 func _on_blacksmith_coin_earned() -> void:
 	wallet.earn(1)
 	game_hud.show_notification("Has ganado 1 moneda trabajando en el yunque.")
+	_anvil_bars_completed += 1
+	game_hud.blacksmith_panel.set_bars_completed(_anvil_bars_completed)
+	_maybe_reward_pickaxe()
+
+
+func _maybe_reward_pickaxe() -> void:
+	var target_bars := game_hud.blacksmith_panel.PICKAXE_BARS
+	if _anvil_bars_completed < target_bars:
+		return
+	if not tool_service.can_acquire_tool(&"pickaxe"):
+		return
+	if tool_service.acquire_tool(&"pickaxe"):
+		game_hud.show_notification(
+			"¡El herrero te ha forjado un Pico por completar %d barras!"
+			% target_bars
+		)
+
+
+func _on_volume_changed(master_volume: float, sfx_volume: float) -> void:
+	sound_service.set_master_volume(master_volume)
+	sound_service.set_sfx_volume(sfx_volume)
+
+
+func _on_volume_preview_requested() -> void:
+	sound_service.play_ui_click()
+
+
+func _on_options_closed() -> void:
+	sound_service.save_settings()
 
 
 func _close_blacksmith() -> void:
@@ -632,9 +710,34 @@ func _sleep_at_hotel() -> void:
 	_refresh_hunting_mode_display()
 
 
+func _show_planting_context_menu(pointer_position: Vector2) -> void:
+	if game_hud.is_planting_context_visible() or game_hud.is_planting_visible():
+		return
+	planting_position = planting_system.tile_center_for_world_position(pointer_position)
+	game_hud.show_planting_context_menu()
+
+
+func _hide_planting_context_menu() -> void:
+	game_hud.hide_planting_context_menu()
+
+
+func _on_planting_context_plant_requested() -> void:
+	if not game_hud.is_planting_context_visible():
+		return
+	_hide_planting_context_menu()
+	_open_planting(planting_position)
+
+
+func _on_crop_harvested(item: ItemDefinition, amount: int) -> void:
+	game_hud.show_notification(
+		"Has recogido %d %s." % [amount, item.label.to_lower()]
+	)
+
+
 func _open_planting(pointer_position: Vector2) -> void:
 	if game_hud.is_planting_visible():
 		return
+	_hide_planting_context_menu()
 	planting_position = planting_system.tile_center_for_world_position(pointer_position)
 	mobile_controls_before_planting = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
@@ -677,6 +780,7 @@ func _open_inventory() -> void:
 		or merchant_service.is_open()
 		or doctor_service.is_open()
 		or game_hud.is_planting_visible()
+		or game_hud.is_planting_context_visible()
 		or game_hud.is_blacksmith_visible()
 	):
 		return
@@ -899,6 +1003,7 @@ func _snapshot_game() -> Dictionary:
 		"inventory": inventory.snapshot(),
 		"tools": tool_service.snapshot(),
 		"wallet": wallet.snapshot(),
+		"anvil_bars_completed": _anvil_bars_completed,
 		"trees": forestry_system.snapshot(),
 		"plantings": planting_system.snapshot(),
 		"veins": mining_system.snapshot(),
@@ -963,6 +1068,7 @@ func _load_saved_game() -> void:
 	var saved_veins: Variant = snapshot.get("veins", [])
 	if saved_veins is Array:
 		mining_system.restore(saved_veins as Array)
+	_anvil_bars_completed = maxi(int(snapshot.get("anvil_bars_completed", 0)), 0)
 	var saved_dialogues: Variant = snapshot.get("dialogues", {})
 	if saved_dialogues is Dictionary:
 		npc_dialogue_system.restore(saved_dialogues as Dictionary)

@@ -17,3 +17,4 @@ visual_style = "stairs"
 render_rect = Rect2(-64, -76, 128, 92)
 collision_rect = Rect2(0, 0, 0, 0)
 accent_color = Color(0.435294, 0.647059, 0.811765, 1)
+visible = false

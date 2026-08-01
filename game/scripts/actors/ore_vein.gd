@@ -109,17 +109,6 @@ func _draw() -> void:
 
 	var mineral := definition.mineral
 	var radius := mineral.visual_radius
-	if is_interaction_focused() and not harvest_depleted:
-		draw_arc(
-			Vector2.ZERO,
-			(radius + 9.0) * definition.visual_scale,
-			0.0,
-			TAU,
-			36,
-			Color(1.0, 1.0, 1.0, 0.84),
-			2.5,
-			true
-		)
 
 	draw_set_transform(
 		Vector2(4.0, 8.0) * definition.visual_scale,

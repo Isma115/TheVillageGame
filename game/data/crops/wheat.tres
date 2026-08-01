@@ -8,6 +8,7 @@ script = ExtResource("1_crop")
 id = &"wheat"
 seed_id = &"wheat_seed"
 label = "trigo"
+harvest_item_id = &"wheat"
 growth_time = 50.0
 grown_texture = ExtResource("2_texture")
 sprite_render_size = 64.0
