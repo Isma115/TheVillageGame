@@ -1,8 +1,10 @@
 extends Node2D
 class_name InteractionHighlight
 
+const INVALID_CELL := Vector2i(2147483647, 2147483647)
+
 var catalog: GameCatalog
-var current_cell := Vector2i(-1, -1)
+var current_cell := INVALID_CELL
 var enabled := false
 
 
@@ -15,7 +17,7 @@ func set_enabled(active: bool) -> void:
 	enabled = active
 	visible = active
 	if not active:
-		current_cell = Vector2i(-1, -1)
+		current_cell = INVALID_CELL
 	queue_redraw()
 
 
@@ -31,7 +33,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_MOUSE_EXIT:
-		current_cell = Vector2i(-1, -1)
+		current_cell = INVALID_CELL
 		queue_redraw()
 
 
@@ -40,13 +42,8 @@ func _update_cell(world_position: Vector2) -> void:
 		floori(world_position.x / catalog.tile_size),
 		floori(world_position.y / catalog.tile_size)
 	)
-	if (
-		next_cell.x < 0
-		or next_cell.y < 0
-		or next_cell.x >= catalog.world_columns
-		or next_cell.y >= catalog.world_rows
-	):
-		next_cell = Vector2i(-1, -1)
+	if not catalog.is_valid_cell(next_cell):
+		next_cell = INVALID_CELL
 
 	if next_cell == current_cell:
 		return
@@ -56,7 +53,7 @@ func _update_cell(world_position: Vector2) -> void:
 
 
 func _draw() -> void:
-	if not enabled or current_cell.x < 0 or current_cell.y < 0:
+	if not enabled or current_cell == INVALID_CELL:
 		return
 
 	var origin := Vector2(current_cell) * catalog.tile_size

@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="NpcDefinition" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="NpcDefinition" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/npc_definition.gd" id="1_npc"]
 [ext_resource type="Resource" path="res://data/merchants/village_merchant.tres" id="2_merchant"]
+[ext_resource type="Texture2D" path="res://assets/npcs/bruno.png" id="3_texture"]
 
 [resource]
 script = ExtResource("1_npc")
@@ -9,6 +10,7 @@ id = &"merchant"
 display_name = "Bruno"
 title = "Mercader de Pradera"
 merchant = ExtResource("2_merchant")
+texture = ExtResource("3_texture")
 area_id = &"overworld"
 world_position = Vector2(1450, 900)
 interaction_distance = 108.0

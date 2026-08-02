@@ -10,7 +10,12 @@ var definition: HotelDefinition
 func initialize(next_definition: HotelDefinition) -> void:
 	definition = next_definition
 	world.initialize(definition)
-	rest_spot.configure(definition.area_id, definition.rest_position, definition.bed_position)
+	rest_spot.configure(
+		definition.area_id,
+		definition.rest_position,
+		definition.bed_position,
+		definition.rest_label
+	)
 
 func world_rect() -> Rect2:
 	return definition.world_rect() if definition != null else Rect2()

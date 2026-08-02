@@ -3,10 +3,12 @@ class_name GameCatalog
 
 const OVERWORLD_AREA_ID: StringName = &"overworld"
 const HOTEL_AREA_ID: StringName = &"village_hotel"
+const REPAIRED_HOUSE_AREA_ID: StringName = &"repaired_house"
 
 @export_category("Mundo")
 @export_range(1, 4096, 1) var world_columns := 35
 @export_range(1, 4096, 1) var world_rows := 35
+@export var world_origin_cell := Vector2i.ZERO
 @export_range(1.0, 1024.0, 1.0) var tile_size := 48.0
 @export_range(0.0, 4096.0, 1.0) var edge_padding := 54.0
 @export var grass_color := Color("#5d934f")
@@ -32,6 +34,7 @@ const HOTEL_AREA_ID: StringName = &"village_hotel"
 @export var tools: Array[ToolDefinition] = []
 @export var forest: ForestDefinition
 @export var hotel: HotelDefinition
+@export var repaired_house_interior: HotelDefinition
 @export var mines: Array[MineDefinition] = []
 @export var area_portals: Array[AreaPortalDefinition] = []
 @export var npcs: Array[NpcDefinition] = []
@@ -48,7 +51,7 @@ const HOTEL_AREA_ID: StringName = &"village_hotel"
 @export_range(1.0, 9999.0, 1.0) var player_max_stamina_cap := 200.0
 @export_range(1.0, 9999.0, 1.0) var player_max_thirst := 100.0
 @export_range(1.0, 9999.0, 1.0) var player_min_stamina_capacity := 20.0
-@export_range(0.1, 9999.0, 0.1) var stamina_drain_rate := 16.0
+@export_range(0.1, 9999.0, 0.1) var stamina_drain_rate := 12.0
 @export_range(0.0, 999.0, 0.01) var stamina_capacity_drain_rate := 0.1
 @export_range(0.1, 9999.0, 0.1) var stamina_recovery_rate := 20.0
 @export_range(1.0, 999999.0, 1.0) var stamina_training_interval := 15.0
@@ -65,13 +68,30 @@ func world_size() -> Vector2:
 	return Vector2(world_columns * tile_size, world_rows * tile_size)
 
 
+func world_origin() -> Vector2:
+	return Vector2(world_origin_cell) * tile_size
+
+
+func last_world_cell_exclusive() -> Vector2i:
+	return world_origin_cell + Vector2i(world_columns, world_rows)
+
+
+func is_valid_cell(cell: Vector2i) -> bool:
+	var last_cell := last_world_cell_exclusive()
+	return (
+		cell.x >= world_origin_cell.x
+		and cell.y >= world_origin_cell.y
+		and cell.x < last_cell.x
+		and cell.y < last_cell.y
+	)
+
+
 func world_rect() -> Rect2:
-	return Rect2(Vector2.ZERO, world_size())
+	return Rect2(world_origin(), world_size())
 
 
 func playable_bounds() -> Rect2:
-	var inset := Vector2(edge_padding, edge_padding)
-	return Rect2(inset, world_size() - inset * 2.0)
+	return world_rect().grow(-edge_padding)
 
 
 func house_definitions() -> Array[HouseDefinition]:
@@ -158,6 +178,8 @@ func area_world_rect(area_id: StringName) -> Rect2:
 		return world_rect()
 	if hotel != null and area_id == hotel.area_id:
 		return hotel.world_rect()
+	if repaired_house_interior != null and area_id == repaired_house_interior.area_id:
+		return repaired_house_interior.world_rect()
 	var mine := mine_for_area(area_id)
 	return mine.world_rect() if mine != null else Rect2()
 
@@ -167,6 +189,8 @@ func area_playable_bounds(area_id: StringName) -> Rect2:
 		return playable_bounds()
 	if hotel != null and area_id == hotel.area_id:
 		return hotel.playable_bounds()
+	if repaired_house_interior != null and area_id == repaired_house_interior.area_id:
+		return repaired_house_interior.playable_bounds()
 	var mine := mine_for_area(area_id)
 	return mine.playable_bounds() if mine != null else Rect2()
 
@@ -186,6 +210,7 @@ func validate() -> PackedStringArray:
 	errors.append_array(_validate_tools())
 	errors.append_array(_validate_forest(item_ids))
 	errors.append_array(_validate_hotel())
+	errors.append_array(_validate_repaired_house_interior())
 	errors.append_array(_validate_mines(item_ids))
 
 	var known_area_ids := _known_area_ids()
@@ -401,6 +426,15 @@ func _validate_hotel() -> PackedStringArray:
 	return errors
 
 
+func _validate_repaired_house_interior() -> PackedStringArray:
+	var errors := PackedStringArray()
+	if repaired_house_interior == null:
+		errors.append("El catÃ¡logo no tiene una definiciÃ³n para la casa reparada.")
+		return errors
+	errors.append_array(repaired_house_interior.validate())
+	return errors
+
+
 func _validate_mines(item_ids: Dictionary) -> PackedStringArray:
 	var errors := PackedStringArray()
 	if mine_definitions().is_empty():
@@ -411,6 +445,8 @@ func _validate_mines(item_ids: Dictionary) -> PackedStringArray:
 	var seen_area_ids: Dictionary = {OVERWORLD_AREA_ID: true}
 	if hotel != null:
 		seen_area_ids[hotel.area_id] = true
+	if repaired_house_interior != null:
+		seen_area_ids[repaired_house_interior.area_id] = true
 	for mine in mine_definitions():
 		errors.append_array(mine.validate())
 		if seen_ids.has(mine.id):
@@ -436,6 +472,11 @@ func _known_area_ids() -> Dictionary:
 	var area_ids: Dictionary = {OVERWORLD_AREA_ID: true}
 	if hotel != null and not String(hotel.area_id).is_empty():
 		area_ids[hotel.area_id] = true
+	if (
+		repaired_house_interior != null
+		and not String(repaired_house_interior.area_id).is_empty()
+	):
+		area_ids[repaired_house_interior.area_id] = true
 	for mine in mine_definitions():
 		if not String(mine.area_id).is_empty():
 			area_ids[mine.area_id] = true
@@ -514,6 +555,16 @@ func _validate_area_connectivity() -> PackedStringArray:
 				"No existe una ruta de regreso desde '%s' hasta la aldea."
 				% hotel.label
 			)
+	if repaired_house_interior != null:
+		if not _can_reach_area(
+			repaired_house_interior.area_id,
+			OVERWORLD_AREA_ID,
+			portals
+		):
+			errors.append(
+			"No existe una ruta de regreso desde '%s' hasta la aldea."
+			% repaired_house_interior.label
+		)
 	return errors
 
 

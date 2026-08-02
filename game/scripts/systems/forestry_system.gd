@@ -17,6 +17,7 @@ var _collision_world: CollisionWorld
 var _interaction_system: InteractionSystem
 var _inventory: InventoryService
 var _tool_service: ToolService
+var sound_service: SoundService
 var _random_source := RandomNumberGenerator.new()
 var _apple_drop_random_source := RandomNumberGenerator.new()
 var _action_cooldown := ActionCooldown.new()
@@ -135,8 +136,9 @@ func restore(snapshot_data: Array) -> void:
 		if not is_instance_valid(tree):
 			continue
 
-		var state := saved_by_index.get(tree.tree_index) as Dictionary
-		if state != null:
+		var saved_state: Variant = saved_by_index.get(tree.tree_index, null)
+		if saved_state is Dictionary:
+			var state := saved_state as Dictionary
 			tree.current_health = clampi(
 				int(state.get("health", tree.maximum_health)),
 				0,
@@ -332,7 +334,10 @@ func _on_tree_interaction_requested(target: Node2D, source: Node2D) -> void:
 	if _tool_service.try_use_capability(&"chop") == null:
 		return
 
-	if not tree.apply_chop(_forest.base_chop_damage):
+	var tree_felled_now := tree.apply_chop(_forest.base_chop_damage)
+	if sound_service != null:
+		sound_service.play_tree_chop()
+	if not tree_felled_now:
 		return
 
 	_collision_world.unregister_obstacle(tree.collision_key())
@@ -344,6 +349,8 @@ func _on_tree_interaction_requested(target: Node2D, source: Node2D) -> void:
 	_try_drop_apple()
 	_active_tree_count = maxi(0, _active_tree_count - 1)
 	tree.play_fall(source.global_position)
+	if sound_service != null:
+		sound_service.play_tree_fall()
 	tree_felled.emit(tree, tree.definition.yielded_item, amount_added)
 
 

@@ -19,6 +19,7 @@ var _successful_hits := 0
 var _reward_pause := false
 var _strike_cooldown := 0.0
 var sound_service: SoundService
+var _control_settings
 var bars_completed := 0
 
 
@@ -28,28 +29,49 @@ func _ready() -> void:
 	visible = false
 
 
+func set_control_settings(settings) -> void:
+	_control_settings = settings
+
+
 func _input(event: InputEvent) -> void:
 	if not visible or _reward_pause:
 		return
-	if (
-		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_LEFT
-		and event.pressed
-	):
-		if close_button.get_global_rect().has_point(event.position):
+	if _is_strike_event(event):
+		if event is InputEventMouseButton:
+			if close_button.get_global_rect().has_point(event.position):
+				return
+		elif close_button.has_focus():
 			return
 		meter.strike_requested.emit()
 		accept_event()
-	elif (
-		event is InputEventKey
-		and event.pressed
-		and not event.echo
-		and (event.keycode == KEY_SPACE or event.keycode == KEY_ENTER)
-	):
-		if close_button.has_focus():
-			return
-		meter.strike_requested.emit()
-		accept_event()
+
+
+func _is_strike_event(event: InputEvent) -> bool:
+	if _control_settings != null:
+		if not _control_settings.matches_event(&"minigame_action", event):
+			return false
+		if event is InputEventKey:
+			var key_event := event as InputEventKey
+			return key_event.pressed and not key_event.echo
+		if event is InputEventMouseButton:
+			return (event as InputEventMouseButton).pressed
+		return false
+	return (
+		(
+			event is InputEventMouseButton
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
+			and (event as InputEventMouseButton).pressed
+		)
+		or (
+			event is InputEventKey
+			and (event as InputEventKey).pressed
+			and not (event as InputEventKey).echo
+			and (
+				(event as InputEventKey).keycode == KEY_SPACE
+				or (event as InputEventKey).keycode == KEY_ENTER
+			)
+		)
+	)
 
 
 func set_bars_completed(value: int) -> void:

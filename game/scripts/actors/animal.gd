@@ -14,7 +14,7 @@ var animation_time := 0.15
 var behavior_time := 0.0
 var behavior_duration := 3.0
 var random_source := RandomNumberGenerator.new()
-var hunting_health := 1
+var hunting_health := 1.0
 
 
 func initialize(
@@ -32,7 +32,7 @@ func initialize(
 	facing = definition.initial_direction.normalized()
 	if facing.is_zero_approx():
 		facing = Vector2.RIGHT
-	hunting_health = definition.hunting_health
+	hunting_health = float(definition.hunting_health)
 	random_source.seed = definition.random_seed
 	_choose_behavior()
 	queue_redraw()
@@ -59,11 +59,11 @@ func contains_hunting_point(world_point: Vector2) -> bool:
 	return world_point.distance_to(hunting_target_position()) <= hunting_hit_radius()
 
 
-func take_hunting_damage(damage: int = 1) -> bool:
-	if definition == null or damage <= 0 or hunting_health <= 0:
+func take_hunting_damage(damage: float = 1.0) -> bool:
+	if definition == null or damage <= 0.0 or hunting_health <= 0.0:
 		return false
-	hunting_health = maxi(0, hunting_health - damage)
-	return hunting_health <= 0
+	hunting_health = maxf(0.0, hunting_health - damage)
+	return hunting_health <= 0.0
 
 
 func update_animal(delta: float) -> void:
@@ -77,7 +77,8 @@ func update_animal(delta: float) -> void:
 
 	if state != IDLE:
 		_move(delta)
-	queue_redraw()
+	if definition.static_texture == null:
+		queue_redraw()
 
 
 func _choose_behavior() -> void:
@@ -145,6 +146,29 @@ func _keep_inside_world(candidate: Vector2, radius: float) -> Vector2:
 
 func _draw() -> void:
 	if definition == null or definition.texture == null:
+		return
+	if definition.static_texture != null:
+		var draw_width := definition.render_width
+		var draw_height := draw_width * definition.static_texture.get_height() / maxf(
+			definition.static_texture.get_width(),
+			1.0
+		)
+		if definition.casts_shadow:
+			draw_set_transform(Vector2(0.0, 5.0), 0.0, Vector2(1.0, 0.32))
+			draw_circle(Vector2.ZERO, draw_width * 0.23, Color(0.086, 0.247, 0.118, 0.18))
+		var flip := -1.0 if facing.x < -0.05 else 1.0
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(flip, 1.0))
+		draw_texture_rect(
+			definition.static_texture,
+			Rect2(
+				-draw_width / 2.0,
+				-draw_height * definition.anchor_y,
+				draw_width,
+				draw_height
+			),
+			false
+		)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 
 	var row := definition.animation_row_for_state(state)

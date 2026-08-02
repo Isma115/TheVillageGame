@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AreaPortalDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/area_portal_definition.gd" id="1_portal"]
+
+[resource]
+script = ExtResource("1_portal")
+id = &"repaired_house_exit"
+label = "Salir de la casa"
+source_area_id = &"repaired_house"
+target_area_id = &"overworld"
+world_position = Vector2(480, 620)
+target_position = Vector2(-900, -650)
+interaction_offset = Vector2(0, -34)
+interaction_distance = 100.0
+priority = 210
+visual_style = "stairs"
+render_rect = Rect2(-64, -76, 128, 92)
+collision_rect = Rect2(0, 0, 0, 0)
+accent_color = Color(0.901961, 0.686275, 0.298039, 1)

@@ -19,6 +19,7 @@ class_name NpcDefinition
 @export var placement_rect := Rect2(-48.0, -58.0, 96.0, 104.0)
 
 @export_group("Aspecto")
+@export var texture: Texture2D
 @export var skin_color := Color("#d9a06f")
 @export var hair_color := Color("#4b4057")
 @export var clothing_color := Color("#725c9c")

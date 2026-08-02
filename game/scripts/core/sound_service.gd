@@ -8,11 +8,15 @@ const SFX_BUS := "SFX"
 
 var _footstep_samples: Array[AudioStream]
 var _mining_sample: AudioStream
+var _tree_chop_sample: AudioStream
+var _tree_fall_sample: AudioStream
 var _anvil_sample: AudioStream
 var _ui_click_sample: AudioStream
 
 var _footsteps_player: AudioStreamPlayer
 var _mining_player: AudioStreamPlayer
+var _tree_chop_player: AudioStreamPlayer
+var _tree_fall_player: AudioStreamPlayer
 var _anvil_player: AudioStreamPlayer
 var _ui_player: AudioStreamPlayer
 var _footstep_distance := 0.0
@@ -32,10 +36,14 @@ func _ready() -> void:
 		load("res://assets/sounds/footstep03.ogg"),
 	]
 	_mining_sample = load("res://assets/sounds/mining_hit.wav")
+	_tree_chop_sample = load("res://assets/sounds/tree_chop.wav")
+	_tree_fall_sample = load("res://assets/sounds/tree_fall.wav")
 	_anvil_sample = load("res://assets/sounds/anvil_hit.ogg")
 	_ui_click_sample = load("res://assets/sounds/ui_click.ogg")
 	_footsteps_player = _create_player()
 	_mining_player = _create_player()
+	_tree_chop_player = _create_player()
+	_tree_fall_player = _create_player()
 	_anvil_player = _create_player()
 	_ui_player = _create_player()
 	_load_settings()
@@ -48,6 +56,8 @@ func _exit_tree() -> void:
 		return
 	_footsteps_player.stop()
 	_mining_player.stop()
+	_tree_chop_player.stop()
+	_tree_fall_player.stop()
 	_anvil_player.stop()
 	_ui_player.stop()
 
@@ -129,6 +139,24 @@ func play_mining_hit() -> void:
 	_mining_player.pitch_scale = 0.95 + randf() * 0.15
 	_mining_player.volume_db = -4.0
 	_mining_player.play()
+
+
+func play_tree_chop() -> void:
+	if not _audio_enabled:
+		return
+	_tree_chop_player.stream = _tree_chop_sample
+	_tree_chop_player.pitch_scale = 0.94 + randf() * 0.10
+	_tree_chop_player.volume_db = -3.0
+	_tree_chop_player.play()
+
+
+func play_tree_fall() -> void:
+	if not _audio_enabled:
+		return
+	_tree_fall_player.stream = _tree_fall_sample
+	_tree_fall_player.pitch_scale = 0.96 + randf() * 0.08
+	_tree_fall_player.volume_db = -1.0
+	_tree_fall_player.play()
 
 
 func play_anvil_hit() -> void:

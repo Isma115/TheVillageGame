@@ -6,6 +6,13 @@ const WATER_BLOCK_EDGE_COLOR := Color(0.46, 0.78, 0.78, 0.55)
 const WATER_SHORE_COLOR := Color("#75c7c7")
 const WATER_HIGHLIGHT_COLOR := Color(0.78, 0.97, 0.97, 0.58)
 const WATER_SECONDARY_HIGHLIGHT_COLOR := Color(0.78, 0.97, 0.97, 0.38)
+const WATER_FRAME_COUNT := 3
+const WATER_FRAME_DURATION := 0.45
+const WATER_FRAME_COLORS := [
+	Color("#2c8ca1"),
+	Color("#3093a5"),
+	Color("#28879e")
+]
 
 @export var house_scene: PackedScene
 
@@ -16,14 +23,33 @@ var water_tile_keys: Dictionary = {}
 var path_tiles: Array[Vector2i] = []
 var path_tile_keys: Dictionary = {}
 var placement_reservations: Dictionary = {}
+var _water_animation_elapsed := 0.0
+var _water_animation_state := 0
+@onready var water_animation_layer: Node = get_node_or_null("WaterAnimationLayer")
+var view_camera: Camera2D
+var _visible_world_rect := Rect2()
+var _visible_draw_rect := Rect2()
+var _visible_first_cell := Vector2i.ZERO
+var _visible_last_cell := Vector2i.ZERO
+var _visible_region_initialized := false
 
 
-func initialize(game_catalog: GameCatalog, actor_layer: Node2D) -> void:
+func initialize(
+	game_catalog: GameCatalog,
+	actor_layer: Node2D,
+	camera: Camera2D = null
+) -> void:
 	catalog = game_catalog
+	view_camera = camera
+	_visible_region_initialized = false
 	_clear_water_tiles()
 	_clear_houses()
 	placement_reservations.clear()
+	_water_animation_elapsed = 0.0
+	_water_animation_state = 0
 	_configure_water_tiles()
+	if water_animation_layer != null:
+		water_animation_layer.call("initialize", catalog, water_cells, view_camera)
 
 	if house_scene == null:
 		push_error("GameWorld necesita una escena de casa.")
@@ -42,7 +68,101 @@ func initialize(game_catalog: GameCatalog, actor_layer: Node2D) -> void:
 			definition.world_collision_rect()
 		)
 	_build_path_tiles()
+	_refresh_visible_region(true)
 	queue_redraw()
+
+
+func set_view_camera(camera: Camera2D) -> void:
+	view_camera = camera
+	_visible_region_initialized = false
+	if water_animation_layer != null:
+		water_animation_layer.call("set_view_camera", view_camera)
+	_refresh_visible_region(true)
+
+
+func refresh_camera_culling() -> void:
+	_refresh_visible_region()
+
+
+func _process(_delta: float) -> void:
+	_refresh_visible_region()
+
+
+func _refresh_visible_region(force: bool = false) -> void:
+	if catalog == null or catalog.tile_size <= 0.0:
+		return
+
+	var camera_rect := _camera_world_rect()
+	var world_rect := catalog.world_rect()
+	var clipped_rect := camera_rect.intersection(world_rect)
+	var first_cell := catalog.world_origin_cell
+	var last_cell := catalog.world_origin_cell
+	if clipped_rect.size.x > 0.0 and clipped_rect.size.y > 0.0:
+		first_cell = Vector2i(
+			clampi(
+				floori(clipped_rect.position.x / catalog.tile_size),
+				catalog.world_origin_cell.x,
+				catalog.last_world_cell_exclusive().x
+			),
+			clampi(
+				floori(clipped_rect.position.y / catalog.tile_size),
+				catalog.world_origin_cell.y,
+				catalog.last_world_cell_exclusive().y
+			)
+		)
+		last_cell = Vector2i(
+			clampi(
+				ceili(clipped_rect.end.x / catalog.tile_size),
+				catalog.world_origin_cell.x,
+				catalog.last_world_cell_exclusive().x
+			),
+			clampi(
+				ceili(clipped_rect.end.y / catalog.tile_size),
+				catalog.world_origin_cell.y,
+				catalog.last_world_cell_exclusive().y
+			)
+		)
+
+	var draw_rect := Rect2(
+		Vector2(first_cell) * catalog.tile_size,
+		Vector2(last_cell - first_cell) * catalog.tile_size
+	)
+	var changed := (
+		force
+		or not _visible_region_initialized
+		or first_cell != _visible_first_cell
+		or last_cell != _visible_last_cell
+	)
+	_visible_world_rect = camera_rect
+	_visible_draw_rect = draw_rect
+	_visible_first_cell = first_cell
+	_visible_last_cell = last_cell
+	_visible_region_initialized = true
+	if changed:
+		queue_redraw()
+
+
+func _camera_world_rect() -> Rect2:
+	if (
+		view_camera == null
+		or not is_instance_valid(view_camera)
+		or catalog == null
+	):
+		return catalog.world_rect() if catalog != null else Rect2()
+
+	var viewport_size := view_camera.get_viewport_rect().size
+	var zoom := view_camera.zoom
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return catalog.world_rect()
+
+	var world_size := Vector2(
+		viewport_size.x / maxf(absf(zoom.x), 0.01),
+		viewport_size.y / maxf(absf(zoom.y), 0.01)
+	)
+	return Rect2(
+		view_camera.get_screen_center_position() - world_size * 0.5,
+		world_size
+	)
 
 
 func collision_obstacles() -> Array[Rect2]:
@@ -82,12 +202,7 @@ func tile_center(cell: Vector2i) -> Vector2:
 
 
 func is_valid_cell(cell: Vector2i) -> bool:
-	return (
-		cell.x >= 0
-		and cell.y >= 0
-		and cell.x < catalog.world_columns
-		and cell.y < catalog.world_rows
-	)
+	return catalog != null and catalog.is_valid_cell(cell)
 
 
 func is_grass_tile(cell: Vector2i) -> bool:
@@ -216,15 +331,17 @@ func _draw() -> void:
 	if catalog == null:
 		return
 
-	var size := catalog.world_size()
-	draw_rect(Rect2(Vector2.ZERO, size), catalog.grass_color)
+	var world_rect := catalog.world_rect()
+	var visible_world_rect := _visible_draw_rect.intersection(world_rect)
+	if visible_world_rect.size.x > 0.0 and visible_world_rect.size.y > 0.0:
+		draw_rect(visible_world_rect, catalog.grass_color)
 
-	for tile_y in range(catalog.world_rows):
-		for tile_x in range(catalog.world_columns):
+	var first_cell := _visible_first_cell
+	var last_cell := _visible_last_cell
+	for tile_y in range(first_cell.y, last_cell.y):
+		for tile_x in range(first_cell.x, last_cell.x):
 			var cell := Vector2i(tile_x, tile_y)
 			if is_water_tile(cell):
-				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-				_draw_water_tile(cell)
 				continue
 
 			var center := Vector2(
@@ -241,7 +358,10 @@ func _draw() -> void:
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for tile in path_tiles:
-		if is_water_tile(tile):
+		if (
+			is_water_tile(tile)
+			or not _tile_rectangle(tile).intersects(_visible_draw_rect)
+		):
 			continue
 		var path_center := Vector2(
 			tile.x * catalog.tile_size + catalog.tile_size / 2.0,
@@ -256,38 +376,81 @@ func _draw() -> void:
 		)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	_draw_path_transitions()
+	_draw_path_transitions(_visible_draw_rect)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_water_tile(cell: Vector2i) -> void:
 	var rectangle := _tile_rectangle(cell)
-	draw_rect(rectangle, WATER_COLOR)
-	draw_rect(rectangle, WATER_BLOCK_EDGE_COLOR, false, 1.5, true)
-	_draw_water_shimmer(cell, rectangle)
-	_draw_water_boundary_edges(cell, rectangle, WATER_SHORE_COLOR, 2.5)
+	var water_color: Color = WATER_FRAME_COLORS[_water_animation_state]
+	draw_rect(rectangle, water_color)
+	_draw_water_shimmer(rectangle)
 
 
-func _draw_water_shimmer(cell: Vector2i, rectangle: Rect2) -> void:
-	var shimmer_variant := posmod(cell.x + cell.y * 2, 3)
-	var shimmer_y := rectangle.position.y + catalog.tile_size * 0.34
-	if shimmer_variant == 0:
-		draw_line(
-			Vector2(rectangle.position.x + catalog.tile_size * 0.22, shimmer_y),
-			Vector2(rectangle.position.x + catalog.tile_size * 0.62, shimmer_y),
-			WATER_HIGHLIGHT_COLOR,
-			2.0,
-			true
-		)
-	elif shimmer_variant == 1:
-		var secondary_y := rectangle.position.y + catalog.tile_size * 0.66
-		draw_line(
-			Vector2(rectangle.position.x + catalog.tile_size * 0.38, secondary_y),
-			Vector2(rectangle.position.x + catalog.tile_size * 0.78, secondary_y),
-			WATER_SECONDARY_HIGHLIGHT_COLOR,
-			2.0,
-			true
-		)
+func _draw_water_shimmer(rectangle: Rect2) -> void:
+	match _water_animation_state:
+		0:
+			_draw_water_reflection(
+				rectangle,
+				0.29,
+				0.16,
+				0.58,
+				WATER_HIGHLIGHT_COLOR
+			)
+			_draw_water_reflection(
+				rectangle,
+				0.68,
+				0.42,
+				0.82,
+				WATER_SECONDARY_HIGHLIGHT_COLOR
+			)
+		1:
+			_draw_water_reflection(
+				rectangle,
+				0.42,
+				0.30,
+				0.76,
+				WATER_HIGHLIGHT_COLOR
+			)
+			_draw_water_reflection(
+				rectangle,
+				0.74,
+				0.12,
+				0.48,
+				WATER_SECONDARY_HIGHLIGHT_COLOR
+			)
+		2:
+			_draw_water_reflection(
+				rectangle,
+				0.58,
+				0.18,
+				0.62,
+				WATER_HIGHLIGHT_COLOR
+			)
+			_draw_water_reflection(
+				rectangle,
+				0.31,
+				0.54,
+				0.88,
+				WATER_SECONDARY_HIGHLIGHT_COLOR
+			)
+
+
+func _draw_water_reflection(
+	rectangle: Rect2,
+	y_ratio: float,
+	start_ratio: float,
+	end_ratio: float,
+	color: Color
+) -> void:
+	var y := rectangle.position.y + catalog.tile_size * y_ratio
+	draw_line(
+		Vector2(rectangle.position.x + catalog.tile_size * start_ratio, y),
+		Vector2(rectangle.position.x + catalog.tile_size * end_ratio, y),
+		color,
+		2.0,
+		true
+	)
 
 
 func _draw_water_boundary_edges(
@@ -330,9 +493,12 @@ func _draw_water_boundary_edges(
 		)
 
 
-func _draw_path_transitions() -> void:
+func _draw_path_transitions(visible_rect: Rect2) -> void:
 	for tile in path_tiles:
-		if is_water_tile(tile):
+		if (
+			is_water_tile(tile)
+			or not _tile_rectangle(tile).intersects(visible_rect)
+		):
 			continue
 		var neighbors := [
 			{"grid": Vector2i(tile.x - 1, tile.y), "side": &"left"},
@@ -451,7 +617,7 @@ func _add_path_strip_tiles(
 
 
 func _add_path_tile(tile_map: Dictionary, grid_x: int, grid_y: int) -> void:
-	if grid_x < 0 or grid_y < 0 or grid_x >= catalog.world_columns or grid_y >= catalog.world_rows:
+	if not catalog.is_valid_cell(Vector2i(grid_x, grid_y)):
 		return
 	tile_map[_path_tile_key(grid_x, grid_y)] = Vector2i(grid_x, grid_y)
 

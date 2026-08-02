@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="MerchantDefinition" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/merchant_definition.gd" id="1_merchant"]
+[ext_resource type="Script" path="res://scripts/data/merchant_offer.gd" id="2_offer"]
+[ext_resource type="Resource" path="res://data/items/coal.tres" id="3_coal"]
+[ext_resource type="Resource" path="res://data/items/copper.tres" id="4_copper"]
+[ext_resource type="Resource" path="res://data/items/iron.tres" id="5_iron"]
+[ext_resource type="Resource" path="res://data/items/silver.tres" id="6_silver"]
+[ext_resource type="Resource" path="res://data/items/gold.tres" id="7_gold"]
+
+[sub_resource type="Resource" id="MinerOffer_coal"]
+script = ExtResource("2_offer")
+id = &"coal"
+label = "Carbón"
+item = ExtResource("3_coal")
+buy_price = 3
+
+[sub_resource type="Resource" id="MinerOffer_copper"]
+script = ExtResource("2_offer")
+id = &"copper"
+label = "Cobre"
+item = ExtResource("4_copper")
+buy_price = 7
+
+[sub_resource type="Resource" id="MinerOffer_iron"]
+script = ExtResource("2_offer")
+id = &"iron"
+label = "Hierro"
+item = ExtResource("5_iron")
+buy_price = 10
+
+[sub_resource type="Resource" id="MinerOffer_silver"]
+script = ExtResource("2_offer")
+id = &"silver"
+label = "Plata"
+item = ExtResource("6_silver")
+buy_price = 16
+
+[sub_resource type="Resource" id="MinerOffer_gold"]
+script = ExtResource("2_offer")
+id = &"gold"
+label = "Oro"
+item = ExtResource("7_gold")
+buy_price = 25
+
+[resource]
+script = ExtResource("1_merchant")
+id = &"miner_merchant"
+display_name = "Comprador de minerales"
+offers = [SubResource("MinerOffer_coal"), SubResource("MinerOffer_copper"), SubResource("MinerOffer_iron"), SubResource("MinerOffer_silver"), SubResource("MinerOffer_gold")]

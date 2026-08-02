@@ -85,6 +85,17 @@ func interact_current_tree() -> bool:
 	return true
 
 
+func interact_current_stone() -> bool:
+	if not _is_current_valid():
+		return false
+	var stone := _current as GroundStonePickup
+	if stone == null:
+		return false
+	stone.interact(_source)
+	_refresh_target()
+	return true
+
+
 func register_interactable(target: InteractableActor) -> void:
 	if target == null:
 		return

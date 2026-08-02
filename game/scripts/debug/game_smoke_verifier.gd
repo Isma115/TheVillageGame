@@ -25,6 +25,7 @@ var _wildlife: WildlifeManager
 var _hunting_system: HuntingSystem
 var _player: PlayerActor
 var _game_hud: GameHud
+var _ground_decoration_layer: GroundDecorationLayer
 var _overworld_actor_layer: Node2D
 var _overworld_collision_world: CollisionWorld
 var _mine_runtimes: Array[MineAreaRuntime] = []
@@ -47,6 +48,7 @@ func initialize(
 	hunting_system: HuntingSystem,
 	player: PlayerActor,
 	game_hud: GameHud,
+	ground_decoration_layer: GroundDecorationLayer,
 	overworld_actor_layer: Node2D,
 	overworld_collision_world: CollisionWorld,
 	mine_runtimes: Array[MineAreaRuntime]
@@ -67,6 +69,7 @@ func initialize(
 	_hunting_system = hunting_system
 	_player = player
 	_game_hud = game_hud
+	_ground_decoration_layer = ground_decoration_layer
 	_overworld_actor_layer = overworld_actor_layer
 	_overworld_collision_world = overworld_collision_world
 	_mine_runtimes.assign(mine_runtimes)
@@ -114,10 +117,14 @@ func _validate_content() -> PackedStringArray:
 		if not _tool_service.can_use_capability(&"chop"):
 			errors.append("La herramienta predeterminada no permite talar.")
 	errors.append_array(_validate_tool_usage())
+	errors.append_array(_validate_tool_repair_flow())
+	errors.append_array(_validate_partial_save_restore())
+	errors.append_array(_validate_ruined_house_flow())
 	errors.append_array(_validate_merchant_flow())
 	errors.append_array(_validate_planting_flow())
 	errors.append_array(_validate_blacksmith_flow())
 	errors.append_array(_validate_woodcutting_flow())
+	errors.append_array(_validate_cooking_flow())
 	errors.append_array(_validate_doctor_flow())
 	errors.append_array(_validate_hunting_flow())
 	if _forestry_system.tree_count() != _catalog.forest.target_tree_count:
@@ -140,6 +147,8 @@ func _validate_content() -> PackedStringArray:
 			errors.append("Falta el mineral obligatorio '%s'." % mineral_id)
 	var expected_area_count := _catalog.mine_definitions().size() + 1
 	if _catalog.hotel != null:
+		expected_area_count += 1
+	if _catalog.repaired_house_interior != null:
 		expected_area_count += 1
 	if _world_area_system.area_count() != expected_area_count:
 		errors.append("El registro de áreas no coincide con el catálogo.")
@@ -553,6 +562,47 @@ func _validate_woodcutting_flow() -> PackedStringArray:
 	return errors
 
 
+func _validate_cooking_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	if _catalog.hotel == null:
+		return ["No hay hotel para probar la cocina."]
+	if not _catalog.hotel.kitchen_rect.has_point(
+		_catalog.hotel.kitchen_interaction_position
+	):
+		errors.append("El punto de interacción de la cocina está fuera de su zona.")
+	_game_hud.show_cooking([
+		{"id": &"tomato", "label": "Tomate", "quantity": 1},
+		{"id": &"carrot", "label": "Zanahoria", "quantity": 0}
+	])
+	if not _game_hud.is_cooking_visible():
+		errors.append("La interfaz de extracción de semillas no se hizo visible.")
+	if _game_hud.cooking_panel.meter.custom_minimum_size.y <= 1.0:
+		errors.append("El área de cortes de cocina no tiene un tamaño visible.")
+	_game_hud.hide_cooking()
+	_game_hud.show_recipe_cooking([
+		{
+			"id": &"salad",
+			"label": "Ensalada",
+			"tomato": 1,
+			"carrot": 1,
+			"available": true
+		}
+	])
+	if not _game_hud.is_recipe_cooking_visible():
+		errors.append("La interfaz de cocina no se hizo visible.")
+	if _game_hud.recipe_cooking_panel.meter.custom_minimum_size.y <= 1.0:
+		errors.append("El medidor vertical de cocina no tiene un tamaño visible.")
+	_game_hud.hide_recipe_cooking()
+	_game_hud.show_kitchen_context_menu()
+	if (
+		not _game_hud.is_planting_context_visible()
+		or not _game_hud.kitchen_cooking_context_button.visible
+	):
+		errors.append("El menú contextual de la cocina no muestra sus dos acciones.")
+	_game_hud.hide_planting_context_menu()
+	return errors
+
+
 func _validate_hunting_flow() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if _hunting_system == null or _wildlife == null:
@@ -560,15 +610,18 @@ func _validate_hunting_flow() -> PackedStringArray:
 
 	var inventory := _merchant_service.inventory_service()
 	var arrows: ItemDefinition
+	var stones: ItemDefinition
 	var meat: ItemDefinition
 	for item in _catalog.item_definitions():
 		if item == null:
 			continue
 		if item.id == &"arrows":
 			arrows = item
+		elif item.id == &"stone":
+			stones = item
 		elif item.id == &"meat":
 			meat = item
-	if arrows == null or meat == null:
+	if arrows == null or stones == null or meat == null:
 		return ["Faltan los recursos del modo de caza."]
 
 	if not _tool_service.has_tool(&"bow"):
@@ -580,6 +633,38 @@ func _validate_hunting_flow() -> PackedStringArray:
 		return ["No se pudo equipar el arco para probar la caza."]
 	if inventory.quantity_of(&"arrows") <= 0:
 		_inventory_add(arrows, 1)
+	if false and _catalog.repaired_house_interior != null:
+		var house_id := _catalog.repaired_house_interior.area_id
+		var house_runtime := _world_area_system.area_runtime(house_id)
+		if house_runtime == null:
+			errors.append("La casa reparada no tiene un runtime registrado.")
+		elif not _world_area_system.transition_to(
+			house_id,
+			_catalog.repaired_house_interior.player_spawn
+		):
+			errors.append("No se pudo entrar en la casa reparada.")
+		else:
+			if (
+				_world_area_system.active_area_id() != house_id
+				or _player.get_parent() != house_runtime.actor_layer
+				or _player.collision_world != house_runtime.collision_world
+			):
+				errors.append("La transiciÃ³n a la casa reparada dejÃ³ un contexto incoherente.")
+			var expected_house_interactions := _world_area_system.portal_count(house_id) + 1
+			if _interaction_system.registered_count(house_id) != expected_house_interactions:
+				errors.append("La casa reparada no registrÃ³ correctamente la cama y su salida.")
+			if (
+				house_runtime.collision_world.obstacle_count()
+				!= _catalog.repaired_house_interior.interior_obstacles.size()
+			):
+				errors.append("La casa reparada no registrÃ³ sus obstÃ¡culos interiores.")
+
+		if not _world_area_system.transition_to(
+			GameCatalog.OVERWORLD_AREA_ID,
+			_catalog.player_spawn
+		):
+			errors.append("No se pudo salir de la casa reparada.")
+
 	_tool_service.equip_tool(_catalog.default_tool_id)
 	_hunting_system.refresh_mode()
 	if _hunting_system.is_hunting_mode():
@@ -620,6 +705,30 @@ func _validate_hunting_flow() -> PackedStringArray:
 			errors.append("Cazar un animal no entrega carne.")
 
 	_hunting_system.disable_mode()
+	_wildlife.update_animals(2.0)
+	if _wildlife.animals.is_empty():
+		errors.append("No apareciÃ³ ningÃºn animal para probar las piedras.")
+	else:
+		var stone_target := _wildlife.animals[0]
+		inventory.remove_item(&"arrows", inventory.quantity_of(&"arrows"))
+		_inventory_add(stones, 2)
+		var stones_before := inventory.quantity_of(&"stone")
+		_hunting_system.refresh_mode()
+		if not _hunting_system.toggle_mode():
+			errors.append("Las piedras no activaron el modo de caza.")
+		else:
+			var health_before := stone_target.hunting_health
+			if not _hunting_system.shoot_at(stone_target.hunting_target_position()):
+				errors.append("La piedra no pudo lanzarse.")
+			elif inventory.quantity_of(&"stone") != stones_before - 1:
+				errors.append("Lanzar una piedra no la consume del inventario.")
+			elif not is_equal_approx(
+				stone_target.hunting_health,
+				health_before - HuntingSystem.STONE_DAMAGE
+			):
+				errors.append("La piedra no aplica su daño reducido.")
+			elif not _wildlife.animals.has(stone_target):
+				errors.append("Una sola piedra eliminÃ³ al animal antes de tiempo.")
 	_tool_service.equip_tool(_catalog.default_tool_id)
 	_hunting_system.refresh_mode()
 	return errors
@@ -658,6 +767,116 @@ func _validate_tool_usage() -> PackedStringArray:
 	return errors
 
 
+func _validate_tool_repair_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	var axe := _tool_service.tool_for(&"axe")
+	if axe == null or not _tool_service.has_tool(axe.id):
+		return ["No hay un hacha para probar su reparación."]
+
+	var tool_snapshot := _tool_service.snapshot()
+	var test_durabilities: Array[int] = [99, 79, 59, 39, 19, 0]
+	var expected_costs: Array[int] = [1, 2, 3, 4, 5, 5]
+	for index in range(test_durabilities.size()):
+		_tool_service.set_durability(axe.id, test_durabilities[index])
+		var cost := _tool_service.repair_cost_for(axe.id)
+		if cost != expected_costs[index]:
+			errors.append(
+				"El coste de reparación del hacha es %d en vez de %d para %d/%d."
+				% [cost, expected_costs[index], test_durabilities[index], axe.maximum_durability]
+			)
+
+	_tool_service.set_durability(axe.id, 0)
+	var broken_options := _tool_service.repair_options()
+	var broken_option_found := false
+	for option in broken_options:
+		if option.get("id", StringName()) != axe.id:
+			continue
+		broken_option_found = true
+		if not bool(option.get("owned", false)) or not bool(option.get("broken", false)):
+			errors.append("Una herramienta rota no aparece como poseída y rota en reparación.")
+		if int(option.get("repair_cost", 0)) != 5:
+			errors.append("Una herramienta rota no cuesta 5 monedas al repararse.")
+		break
+	if not broken_option_found:
+		errors.append("El menú de reparación no incluye el hacha.")
+
+	_game_hud.show_blacksmith_repair(broken_options, _wallet.balance())
+	if not _game_hud.is_blacksmith_repair_visible():
+		errors.append("La interfaz de reparación no se hizo visible.")
+	if not _tool_service.repair_tool(axe.id):
+		errors.append("No se pudo reparar una herramienta rota.")
+	elif _tool_service.durability_of(axe.id) != axe.maximum_durability:
+		errors.append("La reparación no restauró la durabilidad máxima.")
+	_game_hud.hide_blacksmith_repair()
+	_tool_service.restore(tool_snapshot)
+	return errors
+
+
+func _validate_ruined_house_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	var house: RuinedHouseActor
+	for child in _overworld_actor_layer.get_children():
+		var candidate := child as RuinedHouseActor
+		if candidate != null:
+			house = candidate
+			break
+
+	if house == null:
+		return ["No se creó la casa derruida remota."]
+	if house.ruined_texture == null or house.repaired_texture == null:
+		errors.append("La casa derruida no tiene los dos sprites de estado.")
+	if house.global_position.distance_to(_catalog.player_spawn) <= _catalog.tile_size * 20.0:
+		errors.append("La casa derruida no está suficientemente alejada del pueblo.")
+	if not _overworld_collision_world.has_obstacle(house.collision_key()):
+		errors.append("La casa derruida no registró su obstáculo exterior.")
+	if house.is_repaired():
+		errors.append("La casa derruida empieza reparada sin haber sido pagada.")
+
+	var wallet_snapshot := _wallet.snapshot()
+	var repaired_before := house.is_repaired()
+	_wallet.set_balance(RuinedHouseActor.REPAIR_COST)
+	house.interact(_player)
+	if not house.is_repaired():
+		errors.append("Pagar 750 monedas no repara la casa derruida.")
+	if _wallet.balance() != 0:
+		errors.append("Reparar la casa no descuenta exactamente 750 monedas.")
+	if house.interaction_label() != "Entrar en la casa":
+		errors.append("La casa reparada quedó accesible en vez de permanecer cerrada.")
+
+	if _catalog.repaired_house_interior == null:
+		errors.append("La casa reparada no tiene un interior configurado.")
+	else:
+		house.interact(_player)
+		if _world_area_system.active_area_id() != _catalog.repaired_house_interior.area_id:
+			errors.append("La casa reparada no permite entrar en su interior.")
+		if not _world_area_system.transition_to(
+			GameCatalog.OVERWORLD_AREA_ID,
+			_catalog.player_spawn
+		):
+			errors.append("No se pudo volver a la aldea tras probar la casa reparada.")
+
+	house.set_repaired(repaired_before)
+	_wallet.restore(wallet_snapshot)
+	return errors
+
+
+func _validate_partial_save_restore() -> PackedStringArray:
+	var errors := PackedStringArray()
+	var mining_snapshot := _mining_system.snapshot()
+	if not mining_snapshot.is_empty():
+		var partial_mining: Array = [mining_snapshot[0]]
+		_mining_system.restore(partial_mining)
+		_mining_system.restore(mining_snapshot)
+
+	var forestry_snapshot := _forestry_system.snapshot()
+	if not forestry_snapshot.is_empty():
+		var partial_forestry: Array = [forestry_snapshot[0]]
+		_forestry_system.restore(partial_forestry)
+		_forestry_system.restore(forestry_snapshot)
+
+	return errors
+
+
 func _validate_overworld() -> PackedStringArray:
 	var errors := PackedStringArray()
 	var expected_interactables := (
@@ -665,12 +884,17 @@ func _validate_overworld() -> PackedStringArray:
 		+ _world_area_system.portal_count(GameCatalog.OVERWORLD_AREA_ID)
 		+ _npc_dialogue_system.npc_count(GameCatalog.OVERWORLD_AREA_ID)
 		+ _game_world.house_count()
+		+ (
+			_ground_decoration_layer.stone_count()
+			if _ground_decoration_layer != null
+			else 0
+		)
 	)
 	for house in _catalog.house_definitions():
 		if house.id == &"blacksmith":
 			expected_interactables += 1
 			break
-	expected_interactables += 1
+	expected_interactables += 2
 	var actual_interactables := _interaction_system.registered_count(
 		GameCatalog.OVERWORLD_AREA_ID
 	)
@@ -689,7 +913,7 @@ func _validate_overworld() -> PackedStringArray:
 			if _game_world.has_water_source()
 			else 0
 		)
-		+ 1
+		+ 2
 	)
 	if _overworld_collision_world.obstacle_count() != expected_obstacles:
 		errors.append(
@@ -848,6 +1072,37 @@ func _validate_dialogue_flow() -> PackedStringArray:
 func _validate_transitions() -> PackedStringArray:
 	var errors := PackedStringArray()
 	var mining_tool_checked := false
+	if _catalog.repaired_house_interior != null:
+		var house_id := _catalog.repaired_house_interior.area_id
+		var house_runtime := _world_area_system.area_runtime(house_id)
+		if house_runtime == null:
+			errors.append("The repaired house has no registered runtime.")
+		elif not _world_area_system.transition_to(
+			house_id,
+			_catalog.repaired_house_interior.player_spawn
+		):
+			errors.append("Could not enter the repaired house.")
+		else:
+			if (
+				_world_area_system.active_area_id() != house_id
+				or _player.get_parent() != house_runtime.actor_layer
+				or _player.collision_world != house_runtime.collision_world
+			):
+				errors.append("The repaired house transition left an invalid context.")
+			var expected_house_interactions := _world_area_system.portal_count(house_id) + 1
+			if _interaction_system.registered_count(house_id) != expected_house_interactions:
+				errors.append("The repaired house did not register its bed and exit.")
+			if (
+				house_runtime.collision_world.obstacle_count()
+				!= _catalog.repaired_house_interior.interior_obstacles.size()
+			):
+				errors.append("The repaired house did not register its interior obstacles.")
+
+		if not _world_area_system.transition_to(
+			GameCatalog.OVERWORLD_AREA_ID,
+			_catalog.player_spawn
+		):
+			errors.append("Could not leave the repaired house.")
 	for runtime in _mine_runtimes:
 		if not _world_area_system.transition_to(
 			runtime.definition.area_id,

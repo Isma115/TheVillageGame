@@ -3,10 +3,17 @@ class_name RestSpotActor
 
 var _focused := false
 var _visual_offset := Vector2(0.0, -110.0)
+var _interaction_label := "Dormir en el hotel"
 
-func configure(area_id: StringName, interaction_position: Vector2, visual_position: Vector2) -> void:
+func configure(
+	area_id: StringName,
+	interaction_position: Vector2,
+	visual_position: Vector2,
+	interaction_text := "Dormir en el hotel"
+) -> void:
 	position = interaction_position
 	_visual_offset = visual_position - interaction_position
+	_interaction_label = interaction_text
 	set_interaction_area(area_id)
 	set_interaction_active(true)
 	queue_redraw()
@@ -18,7 +25,7 @@ func interaction_priority() -> int:
 	return 95
 
 func interaction_label() -> String:
-	return "Dormir en el hotel"
+	return _interaction_label
 
 func set_interaction_focused(value: bool) -> void:
 	if _focused == value:

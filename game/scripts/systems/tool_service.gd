@@ -125,6 +125,58 @@ func durability_ratio_of(tool_id: StringName) -> float:
 	)
 
 
+func is_tool_broken(tool_id: StringName) -> bool:
+	var definition := tool_for(tool_id)
+	return (
+		definition != null
+		and has_tool(tool_id)
+		and durability_of(tool_id) <= 0
+	)
+
+
+func repair_cost_for(tool_id: StringName) -> int:
+	var definition := tool_for(tool_id)
+	if definition == null or not has_tool(tool_id):
+		return 0
+
+	var durability := durability_of(tool_id)
+	if durability >= definition.maximum_durability:
+		return 0
+
+	var wear_ratio := 1.0 - durability_ratio_of(tool_id)
+	return clampi(ceili(wear_ratio * 5.0), 1, 5)
+
+
+func repair_tool(tool_id: StringName) -> bool:
+	var definition := tool_for(tool_id)
+	if (
+		definition == null
+		or not has_tool(tool_id)
+		or durability_of(tool_id) >= definition.maximum_durability
+	):
+		return false
+
+	_durabilities[tool_id] = definition.maximum_durability
+	_emit_tool_changed(tool_id)
+	return true
+
+
+func repair_options() -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	for definition in tool_definitions():
+		var durability := durability_of(definition.id)
+		options.append({
+			"id": definition.id,
+			"label": definition.label,
+			"maximum_durability": definition.maximum_durability,
+			"durability": durability,
+			"owned": has_tool(definition.id),
+			"broken": is_tool_broken(definition.id),
+			"repair_cost": repair_cost_for(definition.id)
+		})
+	return options
+
+
 func can_use_capability(capability: StringName) -> bool:
 	return can_use_tool_capability(_equipped_tool_id, capability)
 
@@ -249,5 +301,5 @@ func restore(snapshot_data: Dictionary) -> void:
 
 func _emit_tool_changed(tool_id: StringName) -> void:
 	var definition := _definitions.get(tool_id) as ToolDefinition
-	if definition != null and tool_id == _equipped_tool_id:
+	if definition != null:
 		tool_changed.emit(definition, durability_of(tool_id))

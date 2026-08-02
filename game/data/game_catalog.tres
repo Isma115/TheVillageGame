@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="GameCatalog" load_steps=51 format=3]
+[gd_resource type="Resource" script_class="GameCatalog" load_steps=57 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/game_catalog.gd" id="1_catalog"]
 [ext_resource type="Texture2D" path="res://assets/terrain/grass-texture.png" id="2_grass"]
@@ -34,6 +34,9 @@
 [ext_resource type="Resource" path="res://data/items/wheat.tres" id="48_wheat"]
 [ext_resource type="Resource" path="res://data/items/carrot.tres" id="49_carrot"]
 [ext_resource type="Resource" path="res://data/items/bandage.tres" id="50_bandage"]
+[ext_resource type="Resource" path="res://data/items/stone.tres" id="51_stone"]
+[ext_resource type="Resource" path="res://data/items/salad.tres" id="53_salad"]
+[ext_resource type="Resource" path="res://data/items/perfect_salad.tres" id="54_perfect_salad"]
 [ext_resource type="Resource" path="res://data/crops/tomato.tres" id="44_tomato_crop"]
 [ext_resource type="Resource" path="res://data/crops/wheat.tres" id="45_wheat_crop"]
 [ext_resource type="Resource" path="res://data/crops/carrot.tres" id="46_carrot_crop"]
@@ -47,14 +50,18 @@
 [ext_resource type="Resource" path="res://data/npcs/aldara.tres" id="26_aldara"]
 [ext_resource type="Resource" path="res://data/npcs/merchant.tres" id="30_merchant_npc"]
 [ext_resource type="Resource" path="res://data/npcs/doctor.tres" id="33_doctor_npc"]
+[ext_resource type="Resource" path="res://data/npcs/miner.tres" id="52_miner_npc"]
 [ext_resource type="Resource" path="res://data/hotel.tres" id="35_hotel"]
 [ext_resource type="Resource" path="res://data/portals/hotel_entrance.tres" id="36_hotel_entrance"]
 [ext_resource type="Resource" path="res://data/portals/hotel_exit.tres" id="37_hotel_exit"]
+[ext_resource type="Resource" path="res://data/repaired_house_interior.tres" id="55_repaired_house"]
+[ext_resource type="Resource" path="res://data/portals/repaired_house_exit.tres" id="56_repaired_house_exit"]
 
 [resource]
 script = ExtResource("1_catalog")
-world_columns = 35
-world_rows = 35
+world_columns = 85
+world_rows = 85
+world_origin_cell = Vector2i(-25, -25)
 tile_size = 48.0
 edge_padding = 54.0
 grass_color = Color(0.364706, 0.576471, 0.309804, 1)
@@ -71,14 +78,15 @@ plaza = Vector2(840, 830)
 path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route"), ExtResource("39_blacksmith_route")]
 houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone"), ExtResource("40_blacksmith_house")]
 animals = [ExtResource("12_conejo"), ExtResource("13_ciervo"), ExtResource("14_pajaro"), ExtResource("15_jabali")]
-items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot"), ExtResource("50_bandage")]
+items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot"), ExtResource("50_bandage"), ExtResource("51_stone"), ExtResource("53_salad"), ExtResource("54_perfect_salad")]
 crops = [ExtResource("44_tomato_crop"), ExtResource("45_wheat_crop"), ExtResource("46_carrot_crop")]
 tools = [ExtResource("27_axe"), ExtResource("28_pickaxe"), ExtResource("29_bow")]
 forest = ExtResource("22_forest")
 hotel = ExtResource("35_hotel")
+repaired_house_interior = ExtResource("55_repaired_house")
 mines = [ExtResource("23_mine")]
-area_portals = [ExtResource("24_entrance"), ExtResource("25_exit"), ExtResource("36_hotel_entrance"), ExtResource("37_hotel_exit")]
-npcs = [ExtResource("26_aldara"), ExtResource("30_merchant_npc"), ExtResource("33_doctor_npc")]
+area_portals = [ExtResource("24_entrance"), ExtResource("25_exit"), ExtResource("36_hotel_entrance"), ExtResource("37_hotel_exit"), ExtResource("56_repaired_house_exit")]
+npcs = [ExtResource("26_aldara"), ExtResource("30_merchant_npc"), ExtResource("33_doctor_npc"), ExtResource("52_miner_npc")]
 player_radius = 19.0
 player_walk_speed = 170.0
 player_run_speed = 270.0
@@ -90,7 +98,7 @@ player_max_stamina = 100.0
 player_max_stamina_cap = 200.0
 player_max_thirst = 100.0
 player_min_stamina_capacity = 20.0
-stamina_drain_rate = 16.0
+stamina_drain_rate = 12.0
 stamina_capacity_drain_rate = 0.1
 stamina_recovery_rate = 40.0
 stamina_training_interval = 15.0

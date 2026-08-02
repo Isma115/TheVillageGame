@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_panel.tscn" id="2_dialogue"]
@@ -7,7 +7,10 @@
 [ext_resource type="Script" path="res://scripts/ui/hunting_cursor.gd" id="4_hunting_cursor"]
 [ext_resource type="PackedScene" path="res://scenes/ui/planting_panel.tscn" id="6_planting"]
 [ext_resource type="PackedScene" path="res://scenes/ui/blacksmith_panel.tscn" id="7_blacksmith"]
+[ext_resource type="PackedScene" path="res://scenes/ui/blacksmith_repair_panel.tscn" id="9_blacksmith_repair"]
 [ext_resource type="PackedScene" path="res://scenes/ui/woodcutting_panel.tscn" id="8_woodcutting"]
+[ext_resource type="PackedScene" path="res://scenes/ui/cooking_seed_extraction_panel.tscn" id="10_cooking"]
+[ext_resource type="PackedScene" path="res://scenes/ui/cooking_recipe_panel.tscn" id="11_recipe_cooking"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug"]
 content_margin_left = 10.0
@@ -553,19 +556,20 @@ visible = false
 layout_mode = 0
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -150.0
+offset_left = -280.0
 offset_top = 56.0
-offset_right = 150.0
-offset_bottom = 84.0
+offset_right = 280.0
+offset_bottom = 100.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
 
 [node name="HuntingHintLabel" type="Label" parent="HuntingHint"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
 theme_override_font_sizes/font_size = 11
-text = "MODO CAZA  ·  TAB PARA SALIR  ·  CLIC PARA DISPARAR"
+text = "MODO CAZA  ·  ARMA: PIEDRA\n1 FLECHAS  ·  2 PIEDRAS  ·  RUEDA/Q CAMBIAR  ·  CLIC USAR  ·  TAB SALIR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -1024,6 +1028,28 @@ text = "Clic izquierdo"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="StoneRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/StoneRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Recoger piedra"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/StoneRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Clic izquierdo"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="HuntingRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
 custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
@@ -1046,6 +1072,28 @@ text = "Tabulador"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="HuntingWeaponRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/HuntingWeaponRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Elegir arma de caza"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/HuntingWeaponRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "1 Flechas  /  2 Piedras  /  Rueda o Q"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="ShootRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
 custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
@@ -1056,7 +1104,7 @@ custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
 theme_override_font_sizes/font_size = 13
-text = "Disparar en modo caza"
+text = "Disparar / lanzar en modo caza"
 vertical_alignment = 1
 
 [node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ShootRow"]
@@ -1112,11 +1160,84 @@ text = "Joystick  /  Botón de acción"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="CustomizeControlsButton" type="Button" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Personalizar controles"
+
 [node name="ControlsBackButton" type="Button" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "Volver a opciones"
+
+[node name="ControlRemapDialog" type="PanelContainer" parent="PauseOverlay/PauseCenter"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
+[node name="ControlRemapRowsContainer" type="VBoxContainer" parent="PauseOverlay/PauseCenter/ControlRemapDialog"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ControlRemapHeading" type="Label" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 18
+text = "PERSONALIZAR CONTROLES"
+horizontal_alignment = 1
+
+[node name="ControlRemapHint" type="Label" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.72)
+theme_override_font_sizes/font_size = 11
+text = "Haz clic en un control y pulsa la nueva tecla o botón. Los cambios se guardan automáticamente."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ControlRemapScroll" type="ScrollContainer" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer"]
+custom_minimum_size = Vector2(0, 430)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ControlRemapRows" type="VBoxContainer" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer/ControlRemapScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="ControlRemapStatus" type="Label" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 11
+text = "Selecciona una accion y pulsa una tecla o boton."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ControlRemapButtons" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ResetControlsButton" type="Button" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer/ControlRemapButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restablecer predeterminados"
+
+[node name="ControlRemapBackButton" type="Button" parent="PauseOverlay/PauseCenter/ControlRemapDialog/ControlRemapRowsContainer/ControlRemapButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Volver a controles"
 
 [node name="DialoguePanel" parent="." instance=ExtResource("2_dialogue")]
 unique_name_in_owner = true
@@ -1133,7 +1254,16 @@ unique_name_in_owner = true
 [node name="BlacksmithPanel" parent="." instance=ExtResource("7_blacksmith")]
 unique_name_in_owner = true
 
+[node name="BlacksmithRepairPanel" parent="." instance=ExtResource("9_blacksmith_repair")]
+unique_name_in_owner = true
+
 [node name="WoodcuttingPanel" parent="." instance=ExtResource("8_woodcutting")]
+unique_name_in_owner = true
+
+[node name="CookingSeedExtractionPanel" parent="." instance=ExtResource("10_cooking")]
+unique_name_in_owner = true
+
+[node name="CookingRecipePanel" parent="." instance=ExtResource("11_recipe_cooking")]
 unique_name_in_owner = true
 
 [node name="HuntingCursor" type="Control" parent="."]
@@ -1164,14 +1294,26 @@ color = Color(0, 0, 0, 0)
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
-offset_right = 126.0
-offset_bottom = 48.0
+offset_right = 206.0
+offset_bottom = 96.0
 z_index = 900
 theme_override_styles/panel = SubResource("StyleBox_context_menu")
 
-[node name="PlantingContextButton" type="Button" parent="PlantingContextMenu"]
+[node name="PlantingContextActions" type="VBoxContainer" parent="PlantingContextMenu"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PlantingContextButton" type="Button" parent="PlantingContextMenu/PlantingContextActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 36)
+custom_minimum_size = Vector2(190, 36)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Plantar"
+
+[node name="KitchenCookingContextButton" type="Button" parent="PlantingContextMenu/PlantingContextActions"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(190, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Cocinar"

@@ -28,6 +28,7 @@ func configure(npc_definition: NpcDefinition) -> void:
 	definition = npc_definition
 	position = definition.world_position
 	set_interaction_area(definition.area_id)
+	set_process(definition.texture == null)
 	queue_redraw()
 
 
@@ -49,7 +50,10 @@ func interaction_label() -> String:
 	if definition.doctor != null:
 		return "Consultar con %s" % definition.display_name
 	if definition.merchant != null:
-		return "Comerciar con %s" % definition.display_name
+		for offer in definition.merchant.valid_offers():
+			if offer != null and offer.sell_price > 0:
+				return "Comerciar con %s" % definition.display_name
+		return "Vender minerales a %s" % definition.display_name
 	return "Hablar con %s" % definition.display_name
 
 
@@ -90,12 +94,23 @@ func set_interaction_focused(focused: bool) -> void:
 
 
 func _process(delta: float) -> void:
+	if definition != null and definition.texture != null:
+		return
 	_idle_time += delta
 	queue_redraw()
 
 
 func _draw() -> void:
 	if definition == null:
+		return
+	if definition.texture != null:
+		draw_texture_rect(
+			definition.texture,
+			Rect2(-25.0, -45.0, 50.0, 75.0),
+			false
+		)
+		if _focused:
+			_draw_focus_marker()
 		return
 
 	var bob := sin(_idle_time * 2.1) * 0.65
@@ -143,14 +158,19 @@ func _draw() -> void:
 		draw_line(Vector2(-6.0, 11.0), Vector2(6.0, 11.0), definition.accent_color, 3.0, true)
 		draw_line(Vector2(0.0, 5.0), Vector2(0.0, 17.0), definition.accent_color, 3.0, true)
 
-	# Brazos, cuaderno y tubo de mapas.
+	# Brazos y objeto de trabajo.
 	draw_line(Vector2(-14.0, -5.0), Vector2(-23.0, 9.0), definition.skin_color, 6.0, true)
 	draw_line(Vector2(14.0, -5.0), Vector2(21.0, 8.0), definition.skin_color, 6.0, true)
-	draw_rect(Rect2(-27.0, 7.0, 13.0, 17.0), Color("#e8ddbd"), true)
-	draw_rect(Rect2(-27.0, 7.0, 13.0, 17.0), Color("#193724"), false, 2.0)
-	draw_line(Vector2(18.0, -4.0), Vector2(25.0, 24.0), definition.accent_color, 6.0, true)
-	draw_circle(Vector2(18.0, -4.0), 3.0, Color("#193724"))
-	draw_circle(Vector2(25.0, 24.0), 3.0, Color("#193724"))
+	if definition.id == &"miner":
+		draw_line(Vector2(18.0, -4.0), Vector2(31.0, 24.0), Color("#754b2a"), 6.0, true)
+		draw_line(Vector2(24.0, 6.0), Vector2(38.0, 1.0), Color("#737477"), 4.0, true)
+		draw_line(Vector2(24.0, 6.0), Vector2(36.0, 12.0), Color("#737477"), 3.0, true)
+	else:
+		draw_rect(Rect2(-27.0, 7.0, 13.0, 17.0), Color("#e8ddbd"), true)
+		draw_rect(Rect2(-27.0, 7.0, 13.0, 17.0), Color("#193724"), false, 2.0)
+		draw_line(Vector2(18.0, -4.0), Vector2(25.0, 24.0), definition.accent_color, 6.0, true)
+		draw_circle(Vector2(18.0, -4.0), 3.0, Color("#193724"))
+		draw_circle(Vector2(25.0, 24.0), 3.0, Color("#193724"))
 
 	# Cabeza, pelo recogido y rostro.
 	draw_circle(Vector2(0.0, -27.0), 15.5, definition.skin_color)
@@ -166,6 +186,18 @@ func _draw() -> void:
 		true
 	)
 	draw_circle(Vector2(13.5, -31.0), 6.5, definition.hair_color)
+	if definition.id == &"miner":
+		draw_colored_polygon(
+			PackedVector2Array([
+				Vector2(-16.0, -32.0),
+				Vector2(-11.0, -43.0),
+				Vector2(11.0, -43.0),
+				Vector2(16.0, -32.0)
+			]),
+			definition.accent_color
+		)
+		draw_line(Vector2(-16.0, -32.0), Vector2(16.0, -32.0), Color("#193724"), 2.5, true)
+		draw_circle(Vector2(0.0, -42.0), 3.0, Color("#f7e8a0"))
 	draw_line(
 		Vector2(-5.0, -27.0) + eye_offset,
 		Vector2(-5.0, -27.0) + eye_offset + Vector2(0.0, eye_height),

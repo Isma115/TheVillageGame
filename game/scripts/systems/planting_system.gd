@@ -106,8 +106,13 @@ func tile_center_for_world_position(world_position: Vector2) -> Vector2:
 func first_available_grass_cell() -> Vector2i:
 	if _world == null or _catalog == null:
 		return Vector2i(-1, -1)
-	for cell_y in range(_catalog.world_rows):
-		for cell_x in range(_catalog.world_columns):
+	var first_cell := Vector2i(
+		maxi(_catalog.world_origin_cell.x, 0),
+		maxi(_catalog.world_origin_cell.y, 0)
+	)
+	var last_cell := _catalog.last_world_cell_exclusive()
+	for cell_y in range(first_cell.y, last_cell.y):
+		for cell_x in range(first_cell.x, last_cell.x):
 			var cell := Vector2i(cell_x, cell_y)
 			if can_plant_at(_world.tile_center(cell)):
 				return cell
@@ -232,8 +237,8 @@ func restore(snapshot_data: Array) -> void:
 			continue
 		var state := value as Dictionary
 		var cell := Vector2i(
-			int(state.get("cell_x", -1)),
-			int(state.get("cell_y", -1))
+			int(state.get("cell_x", 2147483647)),
+			int(state.get("cell_y", 2147483647))
 		)
 		if not _world.is_grass_tile(cell) or _plots.has(cell):
 			continue

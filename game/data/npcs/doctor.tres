@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="NpcDefinition" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="NpcDefinition" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/npc_definition.gd" id="1_npc"]
 [ext_resource type="Resource" path="res://data/doctors/village_doctor.tres" id="2_doctor"]
+[ext_resource type="Texture2D" path="res://assets/npcs/elena.png" id="3_texture"]
 
 [resource]
 script = ExtResource("1_npc")
@@ -9,6 +10,7 @@ id = &"doctor"
 display_name = "Elena"
 title = "Médica de Pradera"
 doctor = ExtResource("2_doctor")
+texture = ExtResource("3_texture")
 area_id = &"overworld"
 world_position = Vector2(620, 940)
 interaction_distance = 108.0

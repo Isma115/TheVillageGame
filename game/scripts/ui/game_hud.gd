@@ -18,6 +18,17 @@ signal planting_seed_selected(seed_id: StringName)
 signal planting_close_requested
 signal planting_context_plant_requested
 signal water_context_drink_requested
+signal kitchen_seed_extraction_requested
+signal kitchen_cooking_requested
+signal cooking_vegetable_selected(vegetable_id: StringName)
+signal cooking_seed_extraction_finished(vegetable_id: StringName, success: bool)
+signal cooking_close_requested
+signal recipe_cooking_selected(recipe_id: StringName)
+signal recipe_cooking_finished(recipe_id: StringName, outcome: StringName)
+signal recipe_cooking_close_requested
+signal blacksmith_repair_requested
+signal blacksmith_repair_tool_requested(tool_id: StringName)
+signal blacksmith_repair_close_requested
 signal inventory_close_requested
 signal inventory_item_use_requested(item_id: StringName)
 signal blacksmith_coin_earned
@@ -74,6 +85,12 @@ signal options_closed
 @onready var controls_button: Button = %ControlsButton
 @onready var controls_dialog: PanelContainer = %ControlsDialog
 @onready var controls_back_button: Button = %ControlsBackButton
+@onready var customize_controls_button: Button = %CustomizeControlsButton
+@onready var control_remap_dialog: PanelContainer = %ControlRemapDialog
+@onready var control_remap_rows: VBoxContainer = %ControlRemapRows
+@onready var control_remap_status: Label = %ControlRemapStatus
+@onready var reset_controls_button: Button = %ResetControlsButton
+@onready var control_remap_back_button: Button = %ControlRemapBackButton
 @onready var options_back_button: Button = %OptionsBackButton
 @onready var save_accept_button: Button = %SaveAcceptButton
 @onready var save_cancel_button: Button = %SaveCancelButton
@@ -83,10 +100,15 @@ signal options_closed
 @onready var planting_panel: PlantingPanel = %PlantingPanel
 @onready var planting_context_menu: PanelContainer = %PlantingContextMenu
 @onready var planting_context_button: Button = %PlantingContextButton
+@onready var kitchen_cooking_context_button: Button = %KitchenCookingContextButton
 @onready var blacksmith_panel: BlacksmithPanel = %BlacksmithPanel
+@onready var blacksmith_repair_panel: BlacksmithRepairPanel = %BlacksmithRepairPanel
 @onready var woodcutting_panel: WoodcuttingPanel = %WoodcuttingPanel
+@onready var cooking_panel: CookingSeedExtractionPanel = %CookingSeedExtractionPanel
+@onready var recipe_cooking_panel: CookingRecipePanel = %CookingRecipePanel
 @onready var hunting_cursor: HuntingCursor = %HuntingCursor
 @onready var hunting_hint: PanelContainer = %HuntingHint
+@onready var hunting_hint_label: Label = %HuntingHintLabel
 @onready var sleep_fade: ColorRect = %SleepFade
 
 var _mobile_build := false
@@ -102,6 +124,8 @@ var _vitals_panel_base_right := 258.0
 var _context_action: StringName = &""
 var _notification_tween: Tween
 var _sleep_fade_tween: Tween
+var _control_settings
+var _remapping_action: StringName = &""
 
 const SLEEP_FADE_DURATION := 0.65
 
@@ -115,6 +139,9 @@ func _ready() -> void:
 	options_back_button.pressed.connect(close_options)
 	controls_button.pressed.connect(open_controls)
 	controls_back_button.pressed.connect(close_controls)
+	customize_controls_button.pressed.connect(open_control_remap)
+	reset_controls_button.pressed.connect(_on_reset_controls_pressed)
+	control_remap_back_button.pressed.connect(close_control_remap)
 	master_volume_slider.value_changed.connect(_on_master_volume_changed)
 	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
 	master_volume_slider.drag_ended.connect(_on_volume_drag_ended)
@@ -133,11 +160,20 @@ func _ready() -> void:
 	planting_panel.seed_selected.connect(_on_planting_seed_selected)
 	planting_panel.close_requested.connect(_on_planting_close_requested)
 	planting_context_button.pressed.connect(_on_context_button_pressed)
+	kitchen_cooking_context_button.pressed.connect(_on_kitchen_cooking_context_pressed)
 	planting_context_menu.gui_input.connect(_on_planting_context_menu_gui_input)
 	blacksmith_panel.coin_earned.connect(_on_blacksmith_coin_earned)
 	blacksmith_panel.close_requested.connect(_on_blacksmith_close_requested)
+	blacksmith_repair_panel.repair_requested.connect(_on_blacksmith_repair_tool_requested)
+	blacksmith_repair_panel.close_requested.connect(_on_blacksmith_repair_close_requested)
 	woodcutting_panel.coin_earned.connect(_on_woodcutting_coin_earned)
 	woodcutting_panel.close_requested.connect(_on_woodcutting_close_requested)
+	cooking_panel.vegetable_selected.connect(_on_cooking_vegetable_selected)
+	cooking_panel.extraction_finished.connect(_on_cooking_seed_extraction_finished)
+	cooking_panel.close_requested.connect(_on_cooking_close_requested)
+	recipe_cooking_panel.recipe_selected.connect(_on_recipe_cooking_selected)
+	recipe_cooking_panel.cooking_finished.connect(_on_recipe_cooking_finished)
+	recipe_cooking_panel.close_requested.connect(_on_recipe_cooking_close_requested)
 	inventory_close_button.pressed.connect(_on_inventory_close_requested)
 
 
@@ -157,6 +193,8 @@ func initialize(
 	save_dialog.visible = false
 	options_dialog.visible = false
 	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	pause_status.text = ""
 	interaction_prompt.visible = false
 	notification_panel.visible = false
@@ -169,7 +207,11 @@ func initialize(
 	doctor_panel.hide_consultation()
 	planting_panel.hide_panel()
 	blacksmith_panel.hide_minigame()
+	blacksmith_repair_panel.hide_repair()
 	woodcutting_panel.hide_minigame()
+	cooking_panel.hide_panel()
+	recipe_cooking_panel.hide_panel()
+	kitchen_cooking_context_button.visible = false
 	hide_inventory()
 	set_hunting_mode(false)
 
@@ -182,7 +224,10 @@ func open_pause_menu() -> void:
 		or doctor_panel.visible
 		or planting_panel.visible
 		or blacksmith_panel.visible
+		or blacksmith_repair_panel.visible
 		or woodcutting_panel.visible
+		or cooking_panel.visible
+		or recipe_cooking_panel.visible
 		or inventory_panel.visible
 	):
 		return
@@ -192,6 +237,8 @@ func open_pause_menu() -> void:
 	save_dialog.visible = false
 	options_dialog.visible = false
 	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(true)
@@ -207,6 +254,8 @@ func resume_game() -> void:
 	save_dialog.visible = false
 	options_dialog.visible = false
 	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(false)
@@ -218,6 +267,8 @@ func open_options() -> void:
 	pause_menu.visible = false
 	options_dialog.visible = true
 	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	options_back_button.grab_focus()
 
 
@@ -226,6 +277,8 @@ func close_options() -> void:
 		return
 	options_dialog.visible = false
 	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	pause_menu.visible = true
 	options_button.grab_focus()
 	options_closed.emit()
@@ -240,6 +293,8 @@ func open_controls() -> void:
 		return
 	options_dialog.visible = false
 	controls_dialog.visible = true
+	control_remap_dialog.visible = false
+	_remapping_action = &""
 	controls_back_button.grab_focus()
 
 
@@ -253,6 +308,143 @@ func close_controls() -> void:
 
 func is_controls_visible() -> bool:
 	return controls_dialog.visible
+
+
+func open_control_remap() -> void:
+	if not _pause_open or not controls_dialog.visible:
+		return
+	_remapping_action = &""
+	control_remap_status.text = "Selecciona una acción y pulsa una tecla o botón."
+	controls_dialog.visible = false
+	control_remap_dialog.visible = true
+	_refresh_control_remap_rows()
+	control_remap_back_button.grab_focus()
+
+
+func close_control_remap() -> void:
+	if not _pause_open or not control_remap_dialog.visible:
+		return
+	_remapping_action = &""
+	control_remap_dialog.visible = false
+	controls_dialog.visible = true
+	customize_controls_button.grab_focus()
+
+
+func is_control_remap_visible() -> bool:
+	return control_remap_dialog.visible
+
+
+func set_control_settings(settings) -> void:
+	_control_settings = settings
+	blacksmith_panel.set_control_settings(settings)
+	woodcutting_panel.set_control_settings(settings)
+	cooking_panel.set_control_settings(settings)
+	recipe_cooking_panel.set_control_settings(settings)
+	if _control_settings != null:
+		_control_settings.bindings_changed.connect(_on_control_bindings_changed)
+	_refresh_control_remap_rows()
+
+
+func _input(event: InputEvent) -> void:
+	if (
+		_remapping_action.is_empty()
+		or not control_remap_dialog.visible
+		or _control_settings == null
+	):
+		return
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if not key_event.pressed or key_event.echo:
+			return
+	elif event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if not mouse_event.pressed:
+			return
+		if _is_control_remap_ui_click(mouse_event.position):
+			return
+	else:
+		return
+
+	var binding: Dictionary = _control_settings.binding_from_event(event)
+	if binding.is_empty():
+		return
+	if _control_settings.set_binding(_remapping_action, binding):
+		_remapping_action = &""
+		control_remap_status.text = "Control guardado y aplicado inmediatamente."
+	else:
+		control_remap_status.text = _control_settings.last_error()
+	_refresh_control_remap_rows()
+	get_viewport().set_input_as_handled()
+
+
+func _is_control_remap_ui_click(point: Vector2) -> bool:
+	for row in control_remap_rows.get_children():
+		if row.get_child_count() < 2:
+			continue
+		var button := row.get_child(1) as Button
+		if button != null and button.get_global_rect().has_point(point):
+			return true
+	return (
+		reset_controls_button.get_global_rect().has_point(point)
+		or control_remap_back_button.get_global_rect().has_point(point)
+	)
+
+
+func _begin_control_remap(action_id: StringName) -> void:
+	_remapping_action = action_id
+	control_remap_status.text = (
+		"Pulsa la nueva tecla o botón para «%s». "
+		+ "Si ya está usado, elige otro."
+	) % _control_settings.action_label(action_id)
+	_refresh_control_remap_rows()
+
+
+func _on_reset_controls_pressed() -> void:
+	if _control_settings == null:
+		return
+	_remapping_action = &""
+	_control_settings.reset_to_defaults()
+	control_remap_status.text = "Controles restablecidos a los valores predeterminados."
+	_refresh_control_remap_rows()
+
+
+func _on_control_bindings_changed() -> void:
+	_refresh_control_remap_rows()
+
+
+func _refresh_control_remap_rows() -> void:
+	if control_remap_rows == null or _control_settings == null:
+		return
+	for child in control_remap_rows.get_children():
+		child.queue_free()
+
+	for action_id in _control_settings.action_ids():
+		var row := HBoxContainer.new()
+		row.custom_minimum_size = Vector2(0.0, 34.0)
+		row.add_theme_constant_override("separation", 10)
+
+		var label := Label.new()
+		label.custom_minimum_size = Vector2(280.0, 0.0)
+		label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		label.add_theme_color_override("font_color", Color("f1f4dd"))
+		label.add_theme_font_size_override("font_size", 12)
+		label.text = _control_settings.action_label(action_id)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(250.0, 32.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 12)
+		button.text = (
+			"Pulsa una tecla..."
+			if action_id == _remapping_action
+			else _control_settings.binding_text(action_id)
+		)
+		button.pressed.connect(_begin_control_remap.bind(action_id))
+
+		row.add_child(label)
+		row.add_child(button)
+		control_remap_rows.add_child(row)
 
 
 func set_volume_values(master_volume: float, sfx_volume: float) -> void:
@@ -345,7 +537,15 @@ func set_interaction_prompt(label: String, available: bool) -> void:
 		interaction_label.text = ""
 		return
 
-	var shortcut := "CLIC IZQ" if label.begins_with("Talar ") else "E / ESPACIO"
+	var shortcut := "E / ESPACIO"
+	if label.begins_with("Talar ") or label.begins_with("Recoger piedra"):
+		shortcut = (
+			_control_settings.binding_text(&"primary_action")
+			if _control_settings != null
+			else "CLIC IZQ"
+		)
+	elif _control_settings != null:
+		shortcut = _control_settings.binding_text(&"interact")
 	interaction_label.text = (
 		label
 		if _mobile_build
@@ -365,9 +565,12 @@ func set_wallet(balance: int) -> void:
 	inventory_wallet_label.text = "Monedas  %d" % balance
 
 
-func set_hunting_mode(active: bool) -> void:
+func set_hunting_mode(active: bool, projectile_label: String = "") -> void:
 	hunting_cursor.set_active(active)
 	hunting_hint.visible = active
+	if active:
+		var label := projectile_label if not projectile_label.is_empty() else "Sin arma"
+		hunting_hint_label.text = "MODO CAZA  ·  ARMA: %s\n1 FLECHAS  ·  2 PIEDRAS  ·  RUEDA/Q CAMBIAR  ·  CLIC USAR  ·  TAB SALIR" % label.to_upper()
 
 
 func show_notification(message: String) -> void:
@@ -493,22 +696,35 @@ func show_water_context_menu() -> void:
 	_show_context_menu(&"drink", "Beber")
 
 
+func show_blacksmith_context_menu() -> void:
+	_show_context_menu(&"repair_tools", "Reparar herramientas")
+
+
+func show_kitchen_context_menu() -> void:
+	kitchen_cooking_context_button.visible = true
+	_show_context_menu(&"extract_seeds", "Extraer semillas")
+
+
 func _show_context_menu(action: StringName, label: String) -> void:
+	if action != &"extract_seeds":
+		kitchen_cooking_context_button.visible = false
 	_context_action = action
 	planting_context_button.text = label
+	planting_context_menu.visible = true
+	planting_context_menu.reset_size()
 	var viewport_size := get_viewport_rect().size
 	var pointer := get_viewport().get_mouse_position()
-	var menu_size := planting_context_menu.get_combined_minimum_size()
+	var menu_size := planting_context_menu.size
 	planting_context_menu.position = Vector2(
 		clampf(pointer.x + 12.0, 0.0, maxf(viewport_size.x - menu_size.x, 0.0)),
 		clampf(pointer.y + 12.0, 0.0, maxf(viewport_size.y - menu_size.y, 0.0))
 	)
-	planting_context_menu.visible = true
 	planting_context_button.grab_focus()
 
 
 func hide_planting_context_menu() -> void:
 	planting_context_menu.visible = false
+	kitchen_cooking_context_button.visible = false
 	_context_action = &""
 	planting_context_button.text = "Plantar"
 
@@ -520,8 +736,16 @@ func is_planting_context_visible() -> bool:
 func _on_context_button_pressed() -> void:
 	if _context_action == &"drink":
 		water_context_drink_requested.emit()
+	elif _context_action == &"repair_tools":
+		blacksmith_repair_requested.emit()
+	elif _context_action == &"extract_seeds":
+		kitchen_seed_extraction_requested.emit()
 	else:
 		planting_context_plant_requested.emit()
+
+
+func _on_kitchen_cooking_context_pressed() -> void:
+	kitchen_cooking_requested.emit()
 
 
 func _on_planting_context_menu_gui_input(event: InputEvent) -> void:
@@ -561,6 +785,27 @@ func is_blacksmith_visible() -> bool:
 	return blacksmith_panel.visible
 
 
+func show_blacksmith_repair(options: Array[Dictionary], balance: int) -> void:
+	blacksmith_repair_panel.show_repair(options, balance)
+
+
+func refresh_blacksmith_repair(
+	options: Array[Dictionary],
+	balance: int,
+	message: String = "",
+	success: bool = true
+) -> void:
+	blacksmith_repair_panel.refresh(options, balance, message, success)
+
+
+func hide_blacksmith_repair() -> void:
+	blacksmith_repair_panel.hide_repair()
+
+
+func is_blacksmith_repair_visible() -> bool:
+	return blacksmith_repair_panel.visible
+
+
 func show_woodcutting() -> void:
 	woodcutting_panel.show_minigame()
 
@@ -571,6 +816,46 @@ func hide_woodcutting() -> void:
 
 func is_woodcutting_visible() -> bool:
 	return woodcutting_panel.visible
+
+
+func show_cooking(options: Array[Dictionary]) -> void:
+	cooking_panel.show_menu(options)
+
+
+func start_cooking(vegetable_id: StringName) -> void:
+	cooking_panel.start_vegetable(vegetable_id)
+
+
+func show_cooking_result(message: String, success: bool) -> void:
+	cooking_panel.show_result(message, success)
+
+
+func hide_cooking() -> void:
+	cooking_panel.hide_panel()
+
+
+func is_cooking_visible() -> bool:
+	return cooking_panel.visible
+
+
+func show_recipe_cooking(options: Array[Dictionary]) -> void:
+	recipe_cooking_panel.show_menu(options)
+
+
+func start_recipe_cooking(recipe_id: StringName) -> void:
+	recipe_cooking_panel.start_recipe(recipe_id)
+
+
+func show_recipe_cooking_result(message: String, success: bool) -> void:
+	recipe_cooking_panel.show_result(message, success)
+
+
+func hide_recipe_cooking() -> void:
+	recipe_cooking_panel.hide_panel()
+
+
+func is_recipe_cooking_visible() -> bool:
+	return recipe_cooking_panel.visible
 
 
 func show_inventory() -> void:
@@ -842,12 +1127,50 @@ func _on_blacksmith_close_requested() -> void:
 	blacksmith_close_requested.emit()
 
 
+func _on_blacksmith_repair_tool_requested(tool_id: StringName) -> void:
+	blacksmith_repair_tool_requested.emit(tool_id)
+
+
+func _on_blacksmith_repair_close_requested() -> void:
+	blacksmith_repair_close_requested.emit()
+
+
 func _on_woodcutting_coin_earned() -> void:
 	woodcutting_coin_earned.emit()
 
 
 func _on_woodcutting_close_requested() -> void:
 	woodcutting_close_requested.emit()
+
+
+func _on_cooking_vegetable_selected(vegetable_id: StringName) -> void:
+	cooking_vegetable_selected.emit(vegetable_id)
+
+
+func _on_cooking_seed_extraction_finished(
+	vegetable_id: StringName,
+	success: bool
+) -> void:
+	cooking_seed_extraction_finished.emit(vegetable_id, success)
+
+
+func _on_cooking_close_requested() -> void:
+	cooking_close_requested.emit()
+
+
+func _on_recipe_cooking_selected(recipe_id: StringName) -> void:
+	recipe_cooking_selected.emit(recipe_id)
+
+
+func _on_recipe_cooking_finished(
+	recipe_id: StringName,
+	outcome: StringName
+) -> void:
+	recipe_cooking_finished.emit(recipe_id, outcome)
+
+
+func _on_recipe_cooking_close_requested() -> void:
+	recipe_cooking_close_requested.emit()
 
 
 func _on_inventory_close_requested() -> void:

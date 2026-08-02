@@ -5,9 +5,9 @@ class_name MineDefinition
 @export var id: StringName = &"mine"
 @export var area_id: StringName = &"mine"
 @export var label := "Mina"
-@export var interior_size := Vector2(1200.0, 900.0)
+@export var interior_size := Vector2(2400.0, 1800.0)
 @export_range(0.0, 512.0, 1.0) var wall_inset := 62.0
-@export var player_spawn := Vector2(600.0, 675.0)
+@export var player_spawn := Vector2(1200.0, 150.0)
 @export var interior_obstacles: Array[Rect2] = []
 
 @export_group("Contenido")

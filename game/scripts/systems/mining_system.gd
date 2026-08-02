@@ -6,8 +6,12 @@ signal deposit_depleted(
 	item: ItemDefinition,
 	amount: int
 )
+signal stone_dropped(amount: int)
 
 @export var ore_vein_scene: PackedScene
+
+const STONE_ITEM_ID: StringName = &"stone"
+const STONE_DROP_CHANCE := 0.75
 
 var veins: Array[OreVeinActor] = []
 var _sites: Dictionary = {}
@@ -16,6 +20,7 @@ var _interaction_system: InteractionSystem
 var _inventory: InventoryService
 var _tool_service: ToolService
 var sound_service: SoundService
+var _random_source := RandomNumberGenerator.new()
 
 
 func initialize(
@@ -27,6 +32,7 @@ func initialize(
 	_interaction_system = interaction_system
 	_inventory = inventory
 	_tool_service = tool_service
+	_random_source.randomize()
 
 
 func register_mine(
@@ -127,8 +133,9 @@ func restore(snapshot_data: Array) -> void:
 			String(vein.interaction_area_id()),
 			String(vein.definition.id)
 		]
-		var state := saved_by_key.get(key) as Dictionary
-		if state != null:
+		var saved_state: Variant = saved_by_key.get(key, null)
+		if saved_state is Dictionary:
+			var state := saved_state as Dictionary
 			vein.current_health = clampi(
 				int(state.get("health", vein.maximum_health)),
 				0,
@@ -224,7 +231,9 @@ func _on_vein_interaction_requested(target: Node2D, source: Node2D) -> void:
 		return
 	if sound_service != null:
 		sound_service.play_mining_hit()
-	if not vein.apply_mining_hit(site.definition.base_mining_damage):
+	var depleted := vein.apply_mining_hit(site.definition.base_mining_damage)
+	_try_drop_stone()
+	if not depleted:
 		return
 
 	site.collision_world.unregister_obstacle(vein.collision_key())
@@ -233,6 +242,21 @@ func _on_vein_interaction_requested(target: Node2D, source: Node2D) -> void:
 	var amount_added := _inventory.add_item(item, vein.resource_yield)
 	site.active_vein_count = maxi(0, site.active_vein_count - 1)
 	deposit_depleted.emit(vein, item, amount_added)
+
+
+func _try_drop_stone() -> void:
+	if (
+		_inventory == null
+		or _random_source.randf() >= STONE_DROP_CHANCE
+	):
+		return
+
+	var stone := _inventory.definition_for(STONE_ITEM_ID)
+	if stone == null:
+		return
+	var amount_added := _inventory.add_item(stone, 1)
+	if amount_added > 0:
+		stone_dropped.emit(amount_added)
 
 
 func _clear_veins() -> void:

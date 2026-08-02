@@ -5,6 +5,7 @@ class_name AnimalDefinition
 @export var id: StringName = &"animal"
 @export var label := "Animal"
 @export var texture: Texture2D
+@export var static_texture: Texture2D
 
 @export_group("Aparición")
 @export var world_position := Vector2.ZERO

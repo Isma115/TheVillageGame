@@ -1,0 +1,101 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/blacksmith_repair_panel.gd" id="1_repair_panel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_blacksmith_repair"]
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+bg_color = Color(0.094118, 0.172549, 0.113725, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85098, 0.92549, 0.439216, 0.72)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.45)
+shadow_size = 12
+
+[node name="BlacksmithRepairPanel" type="PanelContainer"]
+visible = false
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -235.0
+offset_right = 280.0
+offset_bottom = 235.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBox_blacksmith_repair")
+script = ExtResource("1_repair_panel")
+
+[node name="RepairRows" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RepairHeader" type="HBoxContainer" parent="RepairRows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RepairTitle" type="Label" parent="RepairRows/RepairHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 22
+text = "Reparar herramientas"
+
+[node name="RepairBalance" type="Label" parent="RepairRows/RepairHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
+theme_override_font_sizes/font_size = 14
+text = "Monedas: 0"
+vertical_alignment = 1
+
+[node name="RepairHint" type="Label" parent="RepairRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.72)
+theme_override_font_sizes/font_size = 12
+text = "El precio se ajusta al desgaste. Las herramientas rotas permanecen en el inventario."
+autowrap_mode = 2
+
+[node name="RepairSeparator" type="HSeparator" parent="RepairRows"]
+layout_mode = 2
+
+[node name="RepairScroll" type="ScrollContainer" parent="RepairRows"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="RepairTools" type="VBoxContainer" parent="RepairRows/RepairScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="RepairStatus" type="Label" parent="RepairRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="RepairClose" type="Button" parent="RepairRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Cerrar"
