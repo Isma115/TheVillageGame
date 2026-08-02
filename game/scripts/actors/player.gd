@@ -47,6 +47,8 @@ var stamina_cap := 100.0
 var maximum_thirst := 100.0
 var thirst := 100.0
 var ambient_temperature := 27.5
+var bandage_healing_remaining := 0.0
+var bandage_healing_rate := 0.0
 var _stamina_exhausted := false
 var _stamina_training_elapsed := 0.0
 
@@ -70,6 +72,8 @@ func initialize(
 	stamina_cap = catalog.player_max_stamina
 	maximum_thirst = catalog.player_max_thirst
 	thirst = maximum_thirst
+	bandage_healing_remaining = 0.0
+	bandage_healing_rate = 0.0
 	ambient_temperature = (
 		catalog.temperature_minimum + catalog.temperature_maximum
 	) * 0.5
@@ -200,6 +204,8 @@ func rest() -> void:
 	maximum_stamina = stamina_cap
 	stamina = maximum_stamina
 	thirst = maximum_thirst
+	bandage_healing_remaining = 0.0
+	bandage_healing_rate = 0.0
 	_stamina_exhausted = false
 	_stamina_training_elapsed = 0.0
 	_emit_vitals_changed()
@@ -257,6 +263,32 @@ func heal(amount: float) -> float:
 	return health
 
 
+func can_start_gradual_healing(amount: float, duration: float) -> bool:
+	return amount > 0.0 and duration > 0.0 and health < maximum_health
+
+
+func start_gradual_healing(amount: float, duration: float) -> bool:
+	if not can_start_gradual_healing(amount, duration):
+		return false
+
+	var rate := amount / duration
+	if bandage_healing_remaining <= 0.0:
+		bandage_healing_rate = rate
+	else:
+		bandage_healing_rate = maxf(bandage_healing_rate, rate)
+	bandage_healing_remaining += amount
+	return true
+
+
+func advance_healing(delta: float) -> void:
+	if catalog == null or delta <= 0.0:
+		return
+	var previous_health := health
+	_advance_bandage_healing(delta)
+	if not is_equal_approx(previous_health, health):
+		_emit_vitals_changed()
+
+
 func snapshot() -> Dictionary:
 	return {
 		"health": health,
@@ -266,6 +298,8 @@ func snapshot() -> Dictionary:
 		"stamina_cap": stamina_cap,
 		"thirst": thirst,
 		"maximum_thirst": maximum_thirst,
+		"bandage_healing_remaining": bandage_healing_remaining,
+		"bandage_healing_rate": bandage_healing_rate,
 		"stamina_exhausted": _stamina_exhausted
 	}
 
@@ -330,6 +364,17 @@ func restore(snapshot_data: Dictionary) -> void:
 		0.0,
 		maximum_thirst
 	)
+	bandage_healing_remaining = maxf(
+		float(snapshot_data.get("bandage_healing_remaining", 0.0)),
+		0.0
+	)
+	bandage_healing_rate = maxf(
+		float(snapshot_data.get("bandage_healing_rate", 0.0)),
+		0.0
+	)
+	if health >= maximum_health:
+		bandage_healing_remaining = 0.0
+		bandage_healing_rate = 0.0
 	_stamina_exhausted = bool(
 		snapshot_data.get("stamina_exhausted", stamina <= 0.0)
 	)
@@ -349,6 +394,7 @@ func advance_vitals(delta: float, running: bool) -> void:
 	var previous_maximum_stamina := maximum_stamina
 	var previous_stamina_cap := stamina_cap
 	var previous_thirst := thirst
+	_advance_bandage_healing(delta)
 	if running:
 		stamina = maxf(0.0, stamina - catalog.stamina_drain_rate * delta)
 		maximum_stamina = maxf(
@@ -378,6 +424,27 @@ func advance_vitals(delta: float, running: bool) -> void:
 		or not is_equal_approx(previous_thirst, thirst)
 	):
 		_emit_vitals_changed()
+
+
+func _advance_bandage_healing(delta: float) -> void:
+	if bandage_healing_remaining <= 0.0 or bandage_healing_rate <= 0.0:
+		return
+
+	var healing_step := minf(bandage_healing_remaining, bandage_healing_rate * delta)
+	var missing_health := maxf(maximum_health - health, 0.0)
+	if missing_health <= 0.0:
+		bandage_healing_remaining = 0.0
+		bandage_healing_rate = 0.0
+		return
+
+	health += minf(healing_step, missing_health)
+	bandage_healing_remaining -= healing_step
+	if health >= maximum_health:
+		bandage_healing_remaining = 0.0
+		bandage_healing_rate = 0.0
+	elif bandage_healing_remaining <= 0.0001:
+		bandage_healing_remaining = 0.0
+		bandage_healing_rate = 0.0
 
 
 func _track_stamina_training(delta: float) -> void:

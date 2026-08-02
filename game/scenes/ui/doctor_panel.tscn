@@ -28,9 +28,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -250.0
-offset_top = -198.0
+offset_top = -220.0
 offset_right = 250.0
-offset_bottom = 198.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
@@ -118,6 +118,28 @@ theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 1)
 theme_override_font_sizes/font_size = 13
 text = "Monedas restantes  ·  0"
 horizontal_alignment = 1
+
+[node name="DoctorBandageSeparator" type="HSeparator" parent="DoctorRows"]
+layout_mode = 2
+
+[node name="DoctorBandageRow" type="HBoxContainer" parent="DoctorRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DoctorBandageOffer" type="Label" parent="DoctorRows/DoctorBandageRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.94)
+theme_override_font_sizes/font_size = 14
+text = "Venda  -  8 monedas"
+vertical_alignment = 1
+
+[node name="DoctorBandageButton" type="Button" parent="DoctorRows/DoctorBandageRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Comprar venda"
 
 [node name="DoctorActions" type="HBoxContainer" parent="DoctorRows"]
 layout_mode = 2

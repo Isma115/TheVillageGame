@@ -3,10 +3,12 @@ class_name GameController
 
 const SMOKE_TEST_ARGUMENT := "--smoke-test"
 const PLANTING_CONTEXT_MAX_DISTANCE := 128.0
+const WOODCUTTING_STUMP_POSITION := Vector2(360.0, 1368.0)
 
 @export var catalog: GameCatalog
 @export var mine_area_scene: PackedScene
 @export var hotel_area_scene: PackedScene
+@export var woodcutting_stump_scene: PackedScene
 
 @onready var dynamic_areas: Node2D = %DynamicAreas
 @onready var overworld_area: Node2D = %OverworldArea
@@ -48,11 +50,13 @@ var mobile_controls_before_doctor := false
 var mobile_controls_before_planting := false
 var mobile_controls_before_inventory := false
 var mobile_controls_before_blacksmith := false
+var mobile_controls_before_woodcutting := false
 var mobile_controls_before_hotel_sleep := false
 var hotel_sleeping := false
 var planting_position := Vector2.ZERO
 var context_position := Vector2.ZERO
 var blacksmith_spot: BlacksmithSpotActor
+var woodcutting_stump: WoodcuttingStumpActor
 var _anvil_bars_completed := 0
 
 
@@ -120,7 +124,7 @@ func _initialize_world() -> void:
 	tool_service.initialize(catalog.tool_definitions(), catalog.default_tool_id)
 	wallet.initialize(catalog.starting_coins)
 	merchant_service.initialize(inventory, wallet, tool_service)
-	doctor_service.initialize(wallet)
+	doctor_service.initialize(wallet, inventory)
 
 
 func _initialize_interface() -> void:
@@ -146,6 +150,9 @@ func _initialize_interface() -> void:
 	npc_dialogue_system.merchant_requested.connect(_on_merchant_requested)
 	npc_dialogue_system.doctor_requested.connect(_on_doctor_requested)
 	game_hud.doctor_diagnosis_requested.connect(_on_doctor_diagnosis_requested)
+	game_hud.doctor_bandage_purchase_requested.connect(
+		_on_doctor_bandage_purchase_requested
+	)
 	hunting_system.hunting_mode_changed.connect(_on_hunting_mode_changed)
 	inventory.item_changed.connect(game_hud.set_inventory_item)
 	inventory.item_changed.connect(_on_inventory_item_changed)
@@ -185,8 +192,11 @@ func _initialize_interface() -> void:
 		_on_water_context_drink_requested
 	)
 	game_hud.inventory_close_requested.connect(_close_inventory)
+	game_hud.inventory_item_use_requested.connect(_on_inventory_item_use_requested)
 	game_hud.blacksmith_coin_earned.connect(_on_blacksmith_coin_earned)
 	game_hud.blacksmith_close_requested.connect(_close_blacksmith)
+	game_hud.woodcutting_coin_earned.connect(_on_woodcutting_coin_earned)
+	game_hud.woodcutting_close_requested.connect(_close_woodcutting)
 	game_hud.volume_changed.connect(_on_volume_changed)
 	game_hud.volume_preview_requested.connect(_on_volume_preview_requested)
 	game_hud.options_closed.connect(_on_options_closed)
@@ -219,6 +229,7 @@ func _initialize_areas() -> bool:
 	mining_system.initialize(interaction_system, inventory, tool_service)
 	mining_system.sound_service = sound_service
 	game_hud.blacksmith_panel.sound_service = sound_service
+	game_hud.woodcutting_panel.sound_service = sound_service
 	if world_area_system.register_area(
 		GameCatalog.OVERWORLD_AREA_ID,
 		"Aldea",
@@ -341,7 +352,33 @@ func _create_blacksmith_spot() -> void:
 		return
 
 
+func _create_woodcutting_stump() -> void:
+	if woodcutting_stump_scene == null:
+		push_error("La escena no tiene una plantilla de tocón para cortar madera.")
+		return
+
+	var stump := woodcutting_stump_scene.instantiate() as WoodcuttingStumpActor
+	if stump == null:
+		push_error("La plantilla de corte no crea un WoodcuttingStumpActor.")
+		return
+
+	stump.configure(WOODCUTTING_STUMP_POSITION)
+	overworld_actor_layer.add_child(stump)
+	game_world.register_placement_reservation(
+		stump.collision_key(),
+		stump.placement_rectangle()
+	)
+	overworld_collision_world.register_obstacle(
+		stump.collision_key(),
+		stump.collision_rectangle()
+	)
+	stump.interaction_requested.connect(_on_woodcutting_stump_requested)
+	interaction_system.register_interactable(stump)
+	woodcutting_stump = stump
+
+
 func _initialize_gameplay_systems() -> void:
+	_create_woodcutting_stump()
 	npc_dialogue_system.initialize(
 		catalog.npc_definitions(),
 		GameCatalog.OVERWORLD_AREA_ID,
@@ -389,10 +426,10 @@ func _initialize_gameplay_systems() -> void:
 
 
 func _process(delta: float) -> void:
+	if not initialized or game_paused:
+		return
 	if (
-		not initialized
-		or game_paused
-		or (
+		(
 			npc_dialogue_system != null
 			and npc_dialogue_system.is_dialogue_active()
 		)
@@ -401,8 +438,10 @@ func _process(delta: float) -> void:
 		or game_hud.is_planting_visible()
 		or game_hud.is_inventory_visible()
 		or game_hud.is_blacksmith_visible()
+		or game_hud.is_woodcutting_visible()
 		or hotel_sleeping
 	):
+		player.advance_healing(delta)
 		return
 
 	temperature_system.update(delta)
@@ -442,6 +481,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if hotel_sleeping:
 		get_viewport().set_input_as_handled()
+		return
+
+	if game_hud.is_woodcutting_visible():
+		if _is_pause_event(event):
+			_close_woodcutting()
+			get_viewport().set_input_as_handled()
 		return
 
 	if game_hud.is_blacksmith_visible():
@@ -496,6 +541,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _is_pause_event(event):
 		if game_hud.is_save_confirmation_visible():
 			game_hud.cancel_save_confirmation()
+		elif game_hud.is_controls_visible():
+			game_hud.close_controls()
 		elif game_hud.is_options_visible():
 			game_hud.close_options()
 		elif game_paused:
@@ -506,6 +553,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if game_paused:
+		return
+	if _is_hunting_toggle_event(event):
+		if hunting_system.can_hunt():
+			hunting_system.toggle_mode()
+		else:
+			game_hud.show_notification("Necesitas un arco y flechas para cazar.")
+		get_viewport().set_input_as_handled()
 		return
 	if _is_inventory_toggle_event(event):
 		_open_inventory()
@@ -554,6 +608,19 @@ func _is_inventory_toggle_event(event: InputEvent) -> bool:
 		and (
 			event.keycode == KEY_R
 			or event.physical_keycode == KEY_R
+		)
+	)
+
+
+func _is_hunting_toggle_event(event: InputEvent) -> bool:
+	return (
+		not mobile_build
+		and event is InputEventKey
+		and event.pressed
+		and not event.echo
+		and (
+			event.keycode == KEY_TAB
+			or event.physical_keycode == KEY_TAB
 		)
 	)
 
@@ -642,7 +709,7 @@ func _on_doctor_requested(
 	player.stop_movement()
 	interaction_system.set_enabled(false)
 	mobile_controls.set_enabled(false)
-	game_hud.show_doctor(doctor)
+	game_hud.show_doctor(doctor, doctor_service)
 	_refresh_hunting_mode_display()
 
 
@@ -655,9 +722,16 @@ func _on_doctor_diagnosis_requested() -> void:
 	game_hud.show_doctor_report(doctor, doctor_service.consult(player))
 
 
+func _on_doctor_bandage_purchase_requested() -> void:
+	if not doctor_service.is_open():
+		return
+	game_hud.show_doctor_purchase_result(doctor_service.buy_bandage())
+
+
 func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
 	if (
 		game_hud.is_blacksmith_visible()
+		or game_hud.is_woodcutting_visible()
 		or game_paused
 		or npc_dialogue_system.is_dialogue_active()
 		or merchant_service.is_open()
@@ -674,6 +748,28 @@ func _on_blacksmith_requested(_target: Node, _source: Node) -> void:
 	mobile_controls.set_enabled(false)
 	game_hud.blacksmith_panel.set_bars_completed(_anvil_bars_completed)
 	game_hud.show_blacksmith()
+	_refresh_hunting_mode_display()
+
+
+func _on_woodcutting_stump_requested(_target: Node, _source: Node) -> void:
+	if (
+		game_hud.is_woodcutting_visible()
+		or game_hud.is_blacksmith_visible()
+		or game_paused
+		or npc_dialogue_system.is_dialogue_active()
+		or merchant_service.is_open()
+		or doctor_service.is_open()
+		or game_hud.is_planting_visible()
+		or game_hud.is_inventory_visible()
+	):
+		return
+	_hide_planting_context_menu()
+	mobile_controls_before_woodcutting = mobile_controls.controls_enabled
+	input_state.reset_virtual_controls()
+	player.stop_movement()
+	interaction_system.set_enabled(false)
+	mobile_controls.set_enabled(false)
+	game_hud.show_woodcutting()
 	_refresh_hunting_mode_display()
 
 
@@ -713,6 +809,11 @@ func _on_blacksmith_coin_earned() -> void:
 	_maybe_reward_pickaxe()
 
 
+func _on_woodcutting_coin_earned() -> void:
+	wallet.earn(1)
+	game_hud.show_notification("Has ganado 1 moneda cortando madera.")
+
+
 func _maybe_reward_pickaxe() -> void:
 	var target_bars := game_hud.blacksmith_panel.PICKAXE_BARS
 	if _anvil_bars_completed < target_bars:
@@ -745,6 +846,16 @@ func _close_blacksmith() -> void:
 	game_hud.hide_blacksmith()
 	interaction_system.set_enabled(true)
 	mobile_controls.set_enabled(mobile_controls_before_blacksmith)
+	input_state.reset_virtual_controls()
+	_refresh_hunting_mode_display()
+
+
+func _close_woodcutting() -> void:
+	if not game_hud.is_woodcutting_visible():
+		return
+	game_hud.hide_woodcutting()
+	interaction_system.set_enabled(true)
+	mobile_controls.set_enabled(mobile_controls_before_woodcutting)
 	input_state.reset_virtual_controls()
 	_refresh_hunting_mode_display()
 
@@ -881,6 +992,7 @@ func _open_inventory() -> void:
 		or game_hud.is_planting_visible()
 		or game_hud.is_planting_context_visible()
 		or game_hud.is_blacksmith_visible()
+		or game_hud.is_woodcutting_visible()
 	):
 		return
 	mobile_controls_before_inventory = mobile_controls.controls_enabled
@@ -964,6 +1076,40 @@ func _on_inventory_item_changed(_item: ItemDefinition, _quantity: int) -> void:
 	_refresh_hunting_mode_display()
 
 
+func _on_inventory_item_use_requested(item_id: StringName) -> void:
+	if not game_hud.is_inventory_visible():
+		return
+	var item := inventory.definition_for(item_id)
+	if item == null or not item.is_usable():
+		game_hud.show_notification("Ese objeto no se puede usar.")
+		return
+	if not inventory.has_item(item_id):
+		game_hud.show_notification("No tienes ese objeto.")
+		return
+	if not player.can_start_gradual_healing(
+		item.health_recovery,
+		item.health_recovery_duration
+	):
+		game_hud.show_notification("Tu salud ya está al máximo.")
+		return
+
+	if inventory.remove_item(item_id, 1) != 1:
+		game_hud.show_notification("No se pudo usar el objeto.")
+		return
+	if not player.start_gradual_healing(
+		item.health_recovery,
+		item.health_recovery_duration
+	):
+		inventory.add_item(item, 1)
+		game_hud.show_notification("No se pudo iniciar la curación.")
+		return
+
+	game_hud.show_notification(
+		"Has usado una venda. Recuperarás hasta %d puntos de salud poco a poco."
+		% roundi(item.health_recovery)
+	)
+
+
 func _refresh_hunting_mode_display() -> void:
 	if game_hud == null or hunting_system == null:
 		return
@@ -979,6 +1125,7 @@ func _refresh_hunting_mode_display() -> void:
 		and not game_hud.is_planting_visible()
 		and not game_hud.is_inventory_visible()
 		and not game_hud.is_blacksmith_visible()
+		and not game_hud.is_woodcutting_visible()
 		and not hotel_sleeping
 	)
 	game_hud.set_hunting_mode(visible)

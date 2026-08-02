@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/woodcutting_stump.gd" id="1_stump"]
+[ext_resource type="Texture2D" path="res://assets/woodcutting/stump-with-axe.png" id="2_texture"]
+
+[node name="WoodcuttingStump" type="Node2D"]
+script = ExtResource("1_stump")
+stump_texture = ExtResource("2_texture")

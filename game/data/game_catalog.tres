@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="GameCatalog" load_steps=50 format=3]
+[gd_resource type="Resource" script_class="GameCatalog" load_steps=51 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/game_catalog.gd" id="1_catalog"]
 [ext_resource type="Texture2D" path="res://assets/terrain/grass-texture.png" id="2_grass"]
@@ -33,6 +33,7 @@
 [ext_resource type="Resource" path="res://data/items/tomato.tres" id="47_tomato"]
 [ext_resource type="Resource" path="res://data/items/wheat.tres" id="48_wheat"]
 [ext_resource type="Resource" path="res://data/items/carrot.tres" id="49_carrot"]
+[ext_resource type="Resource" path="res://data/items/bandage.tres" id="50_bandage"]
 [ext_resource type="Resource" path="res://data/crops/tomato.tres" id="44_tomato_crop"]
 [ext_resource type="Resource" path="res://data/crops/wheat.tres" id="45_wheat_crop"]
 [ext_resource type="Resource" path="res://data/crops/carrot.tres" id="46_carrot_crop"]
@@ -70,7 +71,7 @@ plaza = Vector2(840, 830)
 path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route"), ExtResource("39_blacksmith_route")]
 houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone"), ExtResource("40_blacksmith_house")]
 animals = [ExtResource("12_conejo"), ExtResource("13_ciervo"), ExtResource("14_pajaro"), ExtResource("15_jabali")]
-items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot")]
+items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot"), ExtResource("50_bandage")]
 crops = [ExtResource("44_tomato_crop"), ExtResource("45_wheat_crop"), ExtResource("46_carrot_crop")]
 tools = [ExtResource("27_axe"), ExtResource("28_pickaxe"), ExtResource("29_bow")]
 forest = ExtResource("22_forest")

@@ -117,6 +117,7 @@ func _validate_content() -> PackedStringArray:
 	errors.append_array(_validate_merchant_flow())
 	errors.append_array(_validate_planting_flow())
 	errors.append_array(_validate_blacksmith_flow())
+	errors.append_array(_validate_woodcutting_flow())
 	errors.append_array(_validate_doctor_flow())
 	errors.append_array(_validate_hunting_flow())
 	if _forestry_system.tree_count() != _catalog.forest.target_tree_count:
@@ -533,6 +534,25 @@ func _validate_blacksmith_flow() -> PackedStringArray:
 	return errors
 
 
+func _validate_woodcutting_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	_game_hud.show_woodcutting()
+	if not _game_hud.is_woodcutting_visible():
+		errors.append("La interfaz de corte de madera no se hizo visible.")
+	var meter := _game_hud.woodcutting_panel.meter
+	if meter.axe_texture == null:
+		errors.append("El minijuego de corte no tiene textura de hacha.")
+	if meter.stump_texture == null:
+		errors.append("El minijuego de corte no tiene textura de tocón.")
+	if (
+		meter.custom_minimum_size.x <= 1.0
+		or meter.custom_minimum_size.y <= 1.0
+	):
+		errors.append("El medidor de corte no tiene un tamaño mínimo visible.")
+	_game_hud.hide_woodcutting()
+	return errors
+
+
 func _validate_hunting_flow() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if _hunting_system == null or _wildlife == null:
@@ -562,8 +582,10 @@ func _validate_hunting_flow() -> PackedStringArray:
 		_inventory_add(arrows, 1)
 	_tool_service.equip_tool(_catalog.default_tool_id)
 	_hunting_system.refresh_mode()
-	if not _hunting_system.is_hunting_mode():
-		errors.append("Tener arco y flechas no activa el modo de caza.")
+	if _hunting_system.is_hunting_mode():
+		errors.append("El modo de caza se activó sin pulsar Tabulador.")
+	elif not _hunting_system.toggle_mode():
+		errors.append("Tabulador no pudo activar el modo de caza.")
 
 	_wildlife.update_animals(2.0)
 	if _wildlife.animals.is_empty():
@@ -597,6 +619,7 @@ func _validate_hunting_flow() -> PackedStringArray:
 		if inventory.quantity_of(&"meat") != meat_before + 1:
 			errors.append("Cazar un animal no entrega carne.")
 
+	_hunting_system.disable_mode()
 	_tool_service.equip_tool(_catalog.default_tool_id)
 	_hunting_system.refresh_mode()
 	return errors
@@ -647,6 +670,7 @@ func _validate_overworld() -> PackedStringArray:
 		if house.id == &"blacksmith":
 			expected_interactables += 1
 			break
+	expected_interactables += 1
 	var actual_interactables := _interaction_system.registered_count(
 		GameCatalog.OVERWORLD_AREA_ID
 	)
@@ -660,12 +684,12 @@ func _validate_overworld() -> PackedStringArray:
 		_game_world.house_count()
 		+ _forestry_system.active_tree_count()
 		+ _world_area_system.portal_collision_count(GameCatalog.OVERWORLD_AREA_ID)
-		+ _npc_dialogue_system.npc_count(GameCatalog.OVERWORLD_AREA_ID)
 		+ (
 			_game_world.water_block_count()
 			if _game_world.has_water_source()
 			else 0
 		)
+		+ 1
 	)
 	if _overworld_collision_world.obstacle_count() != expected_obstacles:
 		errors.append(

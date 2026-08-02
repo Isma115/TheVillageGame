@@ -334,10 +334,7 @@ func _spawn_npc(definition: NpcDefinition, actor_layer: Node2D) -> void:
 	actor_layer.add_child(npc)
 	npc.interaction_requested.connect(_on_npc_interaction_requested)
 	_interaction_system.register_interactable(npc)
-	_collision_world.register_obstacle(
-		npc.collision_key(),
-		npc.collision_rectangle()
-	)
+	# Los NPC son atravesables; la reserva solo evita que el bosque los cubra.
 	_game_world.register_placement_reservation(
 		npc.collision_key(),
 		npc.placement_rectangle()
@@ -491,8 +488,6 @@ func _clear_npcs() -> void:
 			continue
 		if _interaction_system != null:
 			_interaction_system.unregister_interactable(npc)
-		if _collision_world != null:
-			_collision_world.unregister_obstacle(npc.collision_key())
 		if _game_world != null:
 			_game_world.unregister_placement_reservation(npc.collision_key())
 		npc.queue_free()

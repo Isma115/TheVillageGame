@@ -13,13 +13,17 @@ signal merchant_sell_requested(offer_id: StringName)
 signal merchant_close_requested
 signal doctor_close_requested
 signal doctor_diagnosis_requested
+signal doctor_bandage_purchase_requested
 signal planting_seed_selected(seed_id: StringName)
 signal planting_close_requested
 signal planting_context_plant_requested
 signal water_context_drink_requested
 signal inventory_close_requested
+signal inventory_item_use_requested(item_id: StringName)
 signal blacksmith_coin_earned
 signal blacksmith_close_requested
+signal woodcutting_coin_earned
+signal woodcutting_close_requested
 signal volume_changed(master_volume: float, sfx_volume: float)
 signal volume_preview_requested
 signal options_closed
@@ -67,6 +71,9 @@ signal options_closed
 @onready var options_dialog: PanelContainer = %OptionsDialog
 @onready var master_volume_slider: HSlider = %MasterVolumeSlider
 @onready var sfx_volume_slider: HSlider = %SfxVolumeSlider
+@onready var controls_button: Button = %ControlsButton
+@onready var controls_dialog: PanelContainer = %ControlsDialog
+@onready var controls_back_button: Button = %ControlsBackButton
 @onready var options_back_button: Button = %OptionsBackButton
 @onready var save_accept_button: Button = %SaveAcceptButton
 @onready var save_cancel_button: Button = %SaveCancelButton
@@ -77,12 +84,15 @@ signal options_closed
 @onready var planting_context_menu: PanelContainer = %PlantingContextMenu
 @onready var planting_context_button: Button = %PlantingContextButton
 @onready var blacksmith_panel: BlacksmithPanel = %BlacksmithPanel
+@onready var woodcutting_panel: WoodcuttingPanel = %WoodcuttingPanel
 @onready var hunting_cursor: HuntingCursor = %HuntingCursor
 @onready var hunting_hint: PanelContainer = %HuntingHint
 @onready var sleep_fade: ColorRect = %SleepFade
 
 var _mobile_build := false
+var _inventory_rows: Dictionary = {}
 var _inventory_labels: Dictionary = {}
+var _inventory_use_buttons: Dictionary = {}
 var _inventory_tool_labels: Dictionary = {}
 var _pause_open := false
 var _save_for_exit := false
@@ -103,6 +113,8 @@ func _ready() -> void:
 	exit_button.pressed.connect(_open_exit_confirmation)
 	options_button.pressed.connect(open_options)
 	options_back_button.pressed.connect(close_options)
+	controls_button.pressed.connect(open_controls)
+	controls_back_button.pressed.connect(close_controls)
 	master_volume_slider.value_changed.connect(_on_master_volume_changed)
 	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
 	master_volume_slider.drag_ended.connect(_on_volume_drag_ended)
@@ -117,12 +129,15 @@ func _ready() -> void:
 	merchant_panel.close_requested.connect(_on_merchant_close_requested)
 	doctor_panel.close_requested.connect(_on_doctor_close_requested)
 	doctor_panel.diagnosis_requested.connect(_on_doctor_diagnosis_requested)
+	doctor_panel.bandage_purchase_requested.connect(_on_doctor_bandage_purchase_requested)
 	planting_panel.seed_selected.connect(_on_planting_seed_selected)
 	planting_panel.close_requested.connect(_on_planting_close_requested)
 	planting_context_button.pressed.connect(_on_context_button_pressed)
 	planting_context_menu.gui_input.connect(_on_planting_context_menu_gui_input)
 	blacksmith_panel.coin_earned.connect(_on_blacksmith_coin_earned)
 	blacksmith_panel.close_requested.connect(_on_blacksmith_close_requested)
+	woodcutting_panel.coin_earned.connect(_on_woodcutting_coin_earned)
+	woodcutting_panel.close_requested.connect(_on_woodcutting_close_requested)
 	inventory_close_button.pressed.connect(_on_inventory_close_requested)
 
 
@@ -141,6 +156,7 @@ func initialize(
 	pause_menu.visible = true
 	save_dialog.visible = false
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	pause_status.text = ""
 	interaction_prompt.visible = false
 	notification_panel.visible = false
@@ -153,6 +169,7 @@ func initialize(
 	doctor_panel.hide_consultation()
 	planting_panel.hide_panel()
 	blacksmith_panel.hide_minigame()
+	woodcutting_panel.hide_minigame()
 	hide_inventory()
 	set_hunting_mode(false)
 
@@ -165,6 +182,7 @@ func open_pause_menu() -> void:
 		or doctor_panel.visible
 		or planting_panel.visible
 		or blacksmith_panel.visible
+		or woodcutting_panel.visible
 		or inventory_panel.visible
 	):
 		return
@@ -173,6 +191,7 @@ func open_pause_menu() -> void:
 	pause_menu.visible = true
 	save_dialog.visible = false
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(true)
@@ -187,6 +206,7 @@ func resume_game() -> void:
 	pause_menu.visible = true
 	save_dialog.visible = false
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	pause_state_changed.emit(false)
@@ -197,6 +217,7 @@ func open_options() -> void:
 		return
 	pause_menu.visible = false
 	options_dialog.visible = true
+	controls_dialog.visible = false
 	options_back_button.grab_focus()
 
 
@@ -204,6 +225,7 @@ func close_options() -> void:
 	if not _pause_open or not options_dialog.visible:
 		return
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	pause_menu.visible = true
 	options_button.grab_focus()
 	options_closed.emit()
@@ -211,6 +233,26 @@ func close_options() -> void:
 
 func is_options_visible() -> bool:
 	return options_dialog.visible
+
+
+func open_controls() -> void:
+	if not _pause_open or not options_dialog.visible or controls_dialog.visible:
+		return
+	options_dialog.visible = false
+	controls_dialog.visible = true
+	controls_back_button.grab_focus()
+
+
+func close_controls() -> void:
+	if not _pause_open or not controls_dialog.visible:
+		return
+	controls_dialog.visible = false
+	options_dialog.visible = true
+	controls_button.grab_focus()
+
+
+func is_controls_visible() -> bool:
+	return controls_dialog.visible
 
 
 func set_volume_values(master_volume: float, sfx_volume: float) -> void:
@@ -240,6 +282,7 @@ func cancel_save_confirmation() -> void:
 	save_dialog.visible = false
 	pause_menu.visible = true
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = ""
 	save_button.grab_focus()
@@ -251,6 +294,7 @@ func show_save_result(success: bool, message: String) -> void:
 	save_dialog.visible = false
 	pause_menu.visible = true
 	options_dialog.visible = false
+	controls_dialog.visible = false
 	_save_for_exit = false
 	pause_status.text = message
 	pause_status.modulate = Color("#d9ec70" if success else "#ff9d8d")
@@ -301,10 +345,11 @@ func set_interaction_prompt(label: String, available: bool) -> void:
 		interaction_label.text = ""
 		return
 
+	var shortcut := "CLIC IZQ" if label.begins_with("Talar ") else "E / ESPACIO"
 	interaction_label.text = (
 		label
 		if _mobile_build
-		else "E / ESPACIO  ·  %s" % label
+		else "%s  ·  %s" % [shortcut, label]
 	)
 
 
@@ -417,12 +462,19 @@ func is_merchant_visible() -> bool:
 	return merchant_panel.visible
 
 
-func show_doctor(doctor: DoctorDefinition) -> void:
-	doctor_panel.show_doctor_menu(doctor)
+func show_doctor(
+	doctor: DoctorDefinition,
+	doctor_service: DoctorService = null
+) -> void:
+	doctor_panel.show_doctor_menu(doctor, doctor_service)
 
 
 func show_doctor_report(doctor: DoctorDefinition, report: Dictionary) -> void:
 	doctor_panel.show_consultation(doctor, report)
+
+
+func show_doctor_purchase_result(result: Dictionary) -> void:
+	doctor_panel.show_bandage_purchase_result(result)
 
 
 func hide_doctor() -> void:
@@ -509,6 +561,18 @@ func is_blacksmith_visible() -> bool:
 	return blacksmith_panel.visible
 
 
+func show_woodcutting() -> void:
+	woodcutting_panel.show_minigame()
+
+
+func hide_woodcutting() -> void:
+	woodcutting_panel.hide_minigame()
+
+
+func is_woodcutting_visible() -> bool:
+	return woodcutting_panel.visible
+
+
 func show_inventory() -> void:
 	inventory_panel.visible = true
 	inventory_close_button.grab_focus()
@@ -592,21 +656,53 @@ func set_inventory_item(item: ItemDefinition, quantity: int) -> void:
 	if item == null:
 		return
 
-	var item_label := _inventory_labels.get(item.id) as Label
 	if quantity <= 0:
-		if item_label != null:
-			item_label.visible = false
+		var empty_row := _inventory_rows.get(item.id) as HBoxContainer
+		if empty_row != null:
+			empty_row.visible = false
 		return
 
-	if item_label == null:
-		item_label = Label.new()
+	var row := _inventory_rows.get(item.id) as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.custom_minimum_size = Vector2(0.0, 32.0)
+		row.add_theme_constant_override("separation", 8)
+		inventory_list.add_child(row)
+		_inventory_rows[item.id] = row
+
+		var item_label := Label.new()
+		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		item_label.add_theme_color_override("font_color", item.display_color)
 		item_label.add_theme_font_size_override("font_size", 13)
-		inventory_list.add_child(item_label)
+		row.add_child(item_label)
 		_inventory_labels[item.id] = item_label
 
-	item_label.visible = true
+		if item.is_usable():
+			var use_button := Button.new()
+			use_button.custom_minimum_size = Vector2(82.0, 30.0)
+			use_button.text = "Usar"
+			use_button.tooltip_text = "Usar %s" % item.label
+			use_button.pressed.connect(_on_inventory_item_use_pressed.bind(item.id))
+			row.add_child(use_button)
+			_inventory_use_buttons[item.id] = use_button
+
+	var item_label := _inventory_labels.get(item.id) as Label
+	if item_label == null:
+		return
+	row.visible = true
 	item_label.text = "%s  %d" % [item.label, quantity]
+	var use_button := _inventory_use_buttons.get(item.id) as Button
+	if use_button != null:
+		use_button.disabled = quantity <= 0
+
+
+func _on_inventory_item_use_pressed(item_id: StringName) -> void:
+	inventory_item_use_requested.emit(item_id)
+
+
+func _on_doctor_bandage_purchase_requested() -> void:
+	doctor_bandage_purchase_requested.emit()
 
 
 func set_inventory_tool(
@@ -744,6 +840,14 @@ func _on_blacksmith_coin_earned() -> void:
 
 func _on_blacksmith_close_requested() -> void:
 	blacksmith_close_requested.emit()
+
+
+func _on_woodcutting_coin_earned() -> void:
+	woodcutting_coin_earned.emit()
+
+
+func _on_woodcutting_close_requested() -> void:
+	woodcutting_close_requested.emit()
 
 
 func _on_inventory_close_requested() -> void:

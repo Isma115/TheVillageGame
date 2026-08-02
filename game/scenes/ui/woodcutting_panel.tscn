@@ -1,9 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/blacksmith_panel.gd" id="1_panel"]
-[ext_resource type="Script" path="res://scripts/ui/blacksmith_meter.gd" id="2_meter"]
+[ext_resource type="Script" path="res://scripts/ui/woodcutting_panel.gd" id="1_panel"]
+[ext_resource type="Script" path="res://scripts/ui/woodcutting_meter.gd" id="2_meter"]
+[ext_resource type="Texture2D" path="res://assets/woodcutting/axe-front.png" id="3_axe"]
+[ext_resource type="Texture2D" path="res://assets/woodcutting/stump.png" id="4_stump"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_blacksmith"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_woodcutting"]
 content_margin_left = 24.0
 content_margin_top = 18.0
 content_margin_right = 24.0
@@ -18,10 +20,10 @@ corner_radius_top_left = 14
 corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
-shadow_color = Color(0.027451, 0.0745098, 0.0470588, 0.42)
+shadow_color = Color(0.027451, 0.07451, 0.047059, 0.42)
 shadow_size = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_blacksmith_progress"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_woodcutting_progress"]
 bg_color = Color(0.047059, 0.117647, 0.07451, 1)
 border_width_left = 1
 border_width_top = 1
@@ -33,7 +35,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_blacksmith_progress_fill"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_woodcutting_progress_fill"]
 bg_color = Color(0.447059, 0.784314, 0.356863, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
@@ -55,22 +57,22 @@ corner_radius_bottom_left = 4
 [sub_resource type="StyleBoxFlat" id="StyleBox_cooldown_fill"]
 bg_color = Color(1, 1, 1, 1)
 
-[node name="BlacksmithPanel" type="PanelContainer"]
+[node name="WoodcuttingPanel" type="PanelContainer"]
 visible = false
-custom_minimum_size = Vector2(430, 580)
+custom_minimum_size = Vector2(500, 640)
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -215.0
-offset_top = -290.0
-offset_right = 215.0
-offset_bottom = 290.0
+offset_left = -250.0
+offset_top = -320.0
+offset_right = 250.0
+offset_bottom = 320.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-theme_override_styles/panel = SubResource("StyleBox_blacksmith")
+theme_override_styles/panel = SubResource("StyleBox_woodcutting")
 script = ExtResource("1_panel")
 
 [node name="Rows" type="VBoxContainer" parent="."]
@@ -81,21 +83,20 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
 theme_override_font_sizes/font_size = 22
-text = "HERRERÍA · YUNQUE"
+text = "CORTE DE MADERA"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="Rows"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.713725, 0.847059, 0.745098, 0.86)
 theme_override_font_sizes/font_size = 12
-text = "La zona verde se mueve. Golpea con precisión."
+text = "El hacha oscila. Golpea cuando esté sobre el centro."
 horizontal_alignment = 1
 
 [node name="MeterRow" type="HBoxContainer" parent="Rows"]
-custom_minimum_size = Vector2(0, 330)
+custom_minimum_size = Vector2(0, 350)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 8
 
 [node name="StrikeCooldownBar" type="ProgressBar" parent="Rows/MeterRow"]
 unique_name_in_owner = true
@@ -109,13 +110,16 @@ value = 100.0
 show_percentage = false
 fill_mode = 3
 
-[node name="BlacksmithMeter" type="Control" parent="Rows/MeterRow"]
+[node name="WoodcuttingMeter" type="Control" parent="Rows/MeterRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 350)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-mouse_filter = 0
+mouse_filter = 2
 script = ExtResource("2_meter")
+axe_texture = ExtResource("3_axe")
+stump_texture = ExtResource("4_stump")
 
 [node name="ProgressCaption" type="Label" parent="Rows"]
 layout_mode = 2
@@ -124,38 +128,30 @@ theme_override_font_sizes/font_size = 12
 text = "PROGRESO PARA LA PRÓXIMA MONEDA"
 horizontal_alignment = 1
 
-[node name="BlacksmithProgress" type="ProgressBar" parent="Rows"]
+[node name="WoodcuttingProgress" type="ProgressBar" parent="Rows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
-theme_override_styles/background = SubResource("StyleBox_blacksmith_progress")
-theme_override_styles/fill = SubResource("StyleBox_blacksmith_progress_fill")
+theme_override_styles/background = SubResource("StyleBox_woodcutting_progress")
+theme_override_styles/fill = SubResource("StyleBox_woodcutting_progress_fill")
 max_value = 5.0
 value = 0.0
 show_percentage = false
 
-[node name="BlacksmithStatus" type="Label" parent="Rows"]
+[node name="WoodcuttingStatus" type="Label" parent="Rows"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 38)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
 theme_override_font_sizes/font_size = 12
-text = "Haz clic en la zona verde."
+text = "Haz clic cuando el hacha esté sobre el centro del tocón."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="BlacksmithBars" type="Label" parent="Rows"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.878431, 0.745098, 0.376471, 0.9)
-theme_override_font_sizes/font_size = 12
-text = "Barras forjadas: 0/40"
-horizontal_alignment = 1
-
-[node name="BlacksmithClose" type="Button" parent="Rows"]
+[node name="WoodcuttingClose" type="Button" parent="Rows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Salir de la herrería"
+text = "Salir del corte"

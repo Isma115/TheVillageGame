@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_definition.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"bandage"
+label = "Venda"
+max_stack = 20
+display_color = Color(0.945098, 0.956863, 0.866667, 1)
+usable = true
+health_recovery = 10.0
+health_recovery_duration = 5.0

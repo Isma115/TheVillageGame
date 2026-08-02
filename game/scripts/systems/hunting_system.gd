@@ -13,6 +13,7 @@ var _tool_service: ToolService
 var _arrow_item: ItemDefinition
 var _meat_item: ItemDefinition
 var _hunting_mode := false
+var _hunting_enabled := false
 
 
 func initialize(
@@ -24,6 +25,8 @@ func initialize(
 	_wildlife = wildlife
 	_inventory = inventory
 	_tool_service = tool_service
+	_hunting_enabled = false
+	_hunting_mode = false
 	_arrow_item = null
 	_meat_item = null
 	for item in items:
@@ -41,6 +44,21 @@ func is_hunting_mode() -> bool:
 
 
 func refresh_mode() -> void:
+	_refresh_hunting_mode()
+
+
+func toggle_mode() -> bool:
+	if not can_hunt():
+		_hunting_enabled = false
+		_refresh_hunting_mode()
+		return false
+	_hunting_enabled = not _hunting_enabled
+	_refresh_hunting_mode()
+	return _hunting_mode
+
+
+func disable_mode() -> void:
+	_hunting_enabled = false
 	_refresh_hunting_mode()
 
 
@@ -90,7 +108,10 @@ func shoot_at(world_position: Vector2) -> bool:
 
 
 func _refresh_hunting_mode() -> void:
-	var next_mode := can_hunt()
+	var available := can_hunt()
+	if not available:
+		_hunting_enabled = false
+	var next_mode := _hunting_enabled and available
 	if next_mode == _hunting_mode:
 		return
 	_hunting_mode = next_mode

@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_panel.tscn" id="2_dialogue"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/ui/hunting_cursor.gd" id="4_hunting_cursor"]
 [ext_resource type="PackedScene" path="res://scenes/ui/planting_panel.tscn" id="6_planting"]
 [ext_resource type="PackedScene" path="res://scenes/ui/blacksmith_panel.tscn" id="7_blacksmith"]
+[ext_resource type="PackedScene" path="res://scenes/ui/woodcutting_panel.tscn" id="8_woodcutting"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug"]
 content_margin_left = 10.0
@@ -564,7 +565,7 @@ theme_override_styles/panel = SubResource("StyleBox_debug")
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
 theme_override_font_sizes/font_size = 11
-text = "MODO CAZA  ·  CLIC PARA DISPARAR"
+text = "MODO CAZA  ·  TAB PARA SALIR  ·  CLIC PARA DISPARAR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -810,11 +811,312 @@ max_value = 1.0
 step = 0.01
 value = 1.0
 
+[node name="ControlsButton" type="Button" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Controles"
+
 [node name="OptionsBackButton" type="Button" parent="PauseOverlay/PauseCenter/OptionsDialog/OptionsRows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "Volver"
+
+[node name="ControlsDialog" type="PanelContainer" parent="PauseOverlay/PauseCenter"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
+[node name="ControlsRows" type="VBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ControlsHeading" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 18
+text = "CONTROLES"
+horizontal_alignment = 1
+
+[node name="ControlsHint" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.68)
+theme_override_font_sizes/font_size = 11
+text = "Teclado, ratón y minijuegos"
+horizontal_alignment = 1
+
+[node name="MoveRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MoveRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Moverse"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MoveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "W A S D  /  Flechas"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SprintRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/SprintRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Correr"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/SprintRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Shift"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="InteractRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/InteractRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Interactuar"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/InteractRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "E  /  Espacio"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="PauseRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/PauseRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Pausa / cerrar menús"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/PauseRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Esc"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="InventoryRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/InventoryRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Abrir inventario"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/InventoryRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "R"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ToolsRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ToolsRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Equipar herramienta"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ToolsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "1–9"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TerrainRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/TerrainRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Acciones del terreno"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/TerrainRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Clic derecho"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ChopRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ChopRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Talar árbol"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ChopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Clic izquierdo"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HuntingRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/HuntingRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Activar / desactivar caza"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/HuntingRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Tabulador"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ShootRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ShootRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Disparar en modo caza"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/ShootRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Clic izquierdo"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MinigamesRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MinigamesRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Golpear en minijuegos"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MinigamesRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Clic izquierdo  /  Espacio  /  Enter"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MobileRow" type="HBoxContainer" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Action" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MobileRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Controles móviles"
+vertical_alignment = 1
+
+[node name="Keys" type="Label" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows/MobileRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85098, 0.92549, 0.439216, 1)
+theme_override_font_sizes/font_size = 13
+text = "Joystick  /  Botón de acción"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ControlsBackButton" type="Button" parent="PauseOverlay/PauseCenter/ControlsDialog/ControlsRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Volver a opciones"
 
 [node name="DialoguePanel" parent="." instance=ExtResource("2_dialogue")]
 unique_name_in_owner = true
@@ -829,6 +1131,9 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="BlacksmithPanel" parent="." instance=ExtResource("7_blacksmith")]
+unique_name_in_owner = true
+
+[node name="WoodcuttingPanel" parent="." instance=ExtResource("8_woodcutting")]
 unique_name_in_owner = true
 
 [node name="HuntingCursor" type="Control" parent="."]

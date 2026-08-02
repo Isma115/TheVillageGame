@@ -2,11 +2,16 @@ extends RefCounted
 class_name DoctorService
 
 var _wallet: WalletService
+var _inventory: InventoryService
 var _active_doctor: DoctorDefinition
 
 
-func initialize(wallet: WalletService) -> void:
+func initialize(
+	wallet: WalletService,
+	inventory: InventoryService = null
+) -> void:
 	_wallet = wallet
+	_inventory = inventory
 	_active_doctor = null
 
 
@@ -27,6 +32,56 @@ func is_open() -> bool:
 
 func active_doctor() -> DoctorDefinition:
 	return _active_doctor
+
+
+func bandage_item() -> ItemDefinition:
+	return _active_doctor.bandage_item if is_open() else null
+
+
+func bandage_cost() -> int:
+	return _active_doctor.bandage_cost if is_open() else 0
+
+
+func bandage_quantity() -> int:
+	return _active_doctor.bandage_quantity if is_open() else 0
+
+
+func can_buy_bandage() -> bool:
+	var item := bandage_item()
+	return (
+		item != null
+		and _inventory != null
+		and _wallet != null
+		and _inventory.space_for(item.id) >= bandage_quantity()
+		and _wallet.can_afford(bandage_cost())
+	)
+
+
+func buy_bandage() -> Dictionary:
+	var item := bandage_item()
+	if item == null or _inventory == null or _wallet == null:
+		return _failed_purchase("El medico no tiene vendas disponibles.")
+	if not _wallet.can_afford(bandage_cost()):
+		return _failed_purchase("No tienes suficientes monedas para comprar la venda.")
+	if _inventory.space_for(item.id) < bandage_quantity():
+		return _failed_purchase("No tienes espacio para guardar la venda.")
+	if not _wallet.spend(bandage_cost()):
+		return _failed_purchase("No se pudo completar la compra.")
+
+	var added := _inventory.add_item(item, bandage_quantity())
+	if added != bandage_quantity():
+		_wallet.earn(bandage_cost())
+		return _failed_purchase("No se pudo guardar la venda en el inventario.")
+
+	return {
+		"success": true,
+		"message": "Has comprado %d %s por %d monedas." % [
+			bandage_quantity(),
+			item.label.to_lower(),
+			bandage_cost()
+		],
+		"balance": _wallet.balance()
+	}
 
 
 func consult(player: PlayerActor) -> Dictionary:
@@ -72,4 +127,12 @@ func _failed_report(message: String) -> Dictionary:
 		),
 		"balance": _wallet.balance() if _wallet != null else 0,
 		"message": message
+	}
+
+
+func _failed_purchase(message: String) -> Dictionary:
+	return {
+		"success": false,
+		"message": message,
+		"balance": _wallet.balance() if _wallet != null else 0
 	}

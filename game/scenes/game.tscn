@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/game_controller.gd" id="1_game"]
 [ext_resource type="Resource" path="res://data/game_catalog.tres" id="2_catalog"]
@@ -22,12 +22,14 @@
 [ext_resource type="Script" path="res://scripts/systems/npc_dialogue_system.gd" id="20_npc_dialogue"]
 [ext_resource type="Script" path="res://scripts/systems/hunting_system.gd" id="21_hunting"]
 [ext_resource type="PackedScene" path="res://scenes/world/hotel_area.tscn" id="22_hotel_area"]
+[ext_resource type="PackedScene" path="res://scenes/actors/woodcutting_stump.tscn" id="23_woodcutting_stump"]
 
 [node name="Pradera" type="Node2D"]
 script = ExtResource("1_game")
 catalog = ExtResource("2_catalog")
 mine_area_scene = ExtResource("14_mine_area")
 hotel_area_scene = ExtResource("22_hotel_area")
+woodcutting_stump_scene = ExtResource("23_woodcutting_stump")
 
 [node name="Areas" type="Node2D" parent="."]
 
