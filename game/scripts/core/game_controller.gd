@@ -6,6 +6,7 @@ const SMOKE_TEST_ARGUMENT := "--smoke-test"
 const PLANTING_CONTEXT_MAX_DISTANCE := 128.0
 const WOODCUTTING_STUMP_POSITION := Vector2(360.0, 1368.0)
 const RUINED_HOUSE_POSITION := Vector2(-900.0, -720.0)
+const SHOVEL_PICKUP_OFFSET := Vector2(248.0, 46.0)
 
 @export var catalog: GameCatalog
 @export var mine_area_scene: PackedScene
@@ -29,6 +30,7 @@ const RUINED_HOUSE_POSITION := Vector2(-900.0, -720.0)
 @onready var hunting_system: HuntingSystem = %HuntingSystem
 @onready var player: PlayerActor = %Player
 @onready var game_hud: GameHud = %GameHud
+@onready var day_night_modulate: CanvasModulate = %DayNightModulate
 @onready var mobile_controls: MobileControls = %MobileControls
 
 var overworld_collision_world := CollisionWorld.new()
@@ -45,11 +47,13 @@ var merchant_service := MerchantService.new()
 var doctor_service := DoctorService.new()
 var planting_system := PlantingSystem.new()
 var temperature_system := TemperatureSystem.new()
+var day_night_system := DayNightSystem.new()
 var save_game_service := SaveGameService.new()
 var debug_elapsed := 0.0
 var mobile_build := false
 var initialized := false
 var game_paused := false
+var interaction_highlight_visible := false
 var mobile_controls_before_dialogue := false
 var mobile_controls_before_merchant := false
 var mobile_controls_before_doctor := false
@@ -61,6 +65,9 @@ var mobile_controls_before_cooking := false
 var mobile_controls_before_recipe_cooking := false
 var mobile_controls_before_hotel_sleep := false
 var hotel_sleeping := false
+var sleep_save_pending := false
+var sleep_should_save := false
+var sleep_save_failed := false
 var sleeping_area_label := "el hotel"
 var planting_position := Vector2.ZERO
 var context_position := Vector2.ZERO
@@ -69,6 +76,7 @@ var cooking_recipe_id: StringName = &""
 var blacksmith_spot: BlacksmithSpotActor
 var woodcutting_stump: WoodcuttingStumpActor
 var ruined_house: RuinedHouseActor
+var shovel_pickup: ShovelPickupActor
 var _anvil_bars_completed := 0
 
 
@@ -87,6 +95,15 @@ func _ready() -> void:
 
 	_initialize_world()
 	_initialize_interface()
+	day_night_system.initialize(
+		catalog.day_night_cycle_duration,
+		catalog.day_night_initial_hour,
+		catalog.day_night_dawn_start_hour,
+		catalog.day_night_sunrise_hour,
+		catalog.day_night_sunset_hour,
+		catalog.day_night_dusk_end_hour,
+		day_night_modulate
+	)
 	_initialize_player_and_interactions()
 	if not _initialize_areas():
 		return
@@ -153,9 +170,11 @@ func _initialize_interface() -> void:
 	game_hud.set_control_settings(control_settings)
 	temperature_system.temperature_changed.connect(game_hud.set_temperature)
 	game_hud.set_temperature(temperature_system.current_temperature())
+	day_night_system.time_changed.connect(game_hud.set_game_time)
 	game_hud.pause_state_changed.connect(_on_pause_state_changed)
 	game_hud.save_confirmed.connect(_on_save_confirmed)
 	game_hud.save_cancelled.connect(_on_save_cancelled)
+	game_hud.sleep_save_decided.connect(_on_sleep_save_decided)
 	game_hud.dialogue_choice_selected.connect(npc_dialogue_system.choose)
 	game_hud.dialogue_action_selected.connect(npc_dialogue_system.perform_action)
 	game_hud.dialogue_close_requested.connect(npc_dialogue_system.close_dialogue)
@@ -181,6 +200,7 @@ func _initialize_interface() -> void:
 	inventory.item_changed.connect(game_hud.set_inventory_item)
 	inventory.item_changed.connect(_on_inventory_item_changed)
 	ground_decoration_layer.stone_picked.connect(_on_ground_stone_picked)
+	ground_decoration_layer.grass_picked.connect(_on_ground_grass_picked)
 	tool_service.tool_changed.connect(game_hud.set_tool)
 	tool_service.tool_changed.connect(_on_tool_changed)
 	wallet.balance_changed.connect(game_hud.set_wallet)
@@ -212,6 +232,9 @@ func _initialize_interface() -> void:
 	game_hud.planting_close_requested.connect(_close_planting)
 	game_hud.planting_context_plant_requested.connect(
 		_on_planting_context_plant_requested
+	)
+	game_hud.terrain_context_dig_requested.connect(
+		_on_terrain_context_dig_requested
 	)
 	game_hud.water_context_drink_requested.connect(
 		_on_water_context_drink_requested
@@ -458,6 +481,17 @@ func _create_ruined_house() -> void:
 	house.interaction_requested.connect(_on_ruined_house_interaction_requested)
 	interaction_system.register_interactable(house)
 	ruined_house = house
+	_create_shovel_pickup()
+
+
+func _create_shovel_pickup() -> void:
+	var pickup := ShovelPickupActor.new()
+	pickup.name = "ShovelPickup"
+	pickup.configure(RUINED_HOUSE_POSITION + SHOVEL_PICKUP_OFFSET)
+	overworld_actor_layer.add_child(pickup)
+	pickup.interaction_requested.connect(_on_shovel_pickup_requested)
+	interaction_system.register_interactable(pickup)
+	shovel_pickup = pickup
 
 
 func _initialize_gameplay_systems() -> void:
@@ -506,12 +540,14 @@ func _initialize_gameplay_systems() -> void:
 		tool_service,
 		catalog.item_definitions()
 	)
-	interaction_highlight.initialize(catalog, not mobile_build)
+	interaction_highlight.initialize(catalog, false)
 	_create_blacksmith_spot()
 
 
 func _process(delta: float) -> void:
 	if not initialized or game_paused:
+		return
+	if sleep_save_pending:
 		return
 	if (
 		(
@@ -533,6 +569,7 @@ func _process(delta: float) -> void:
 		return
 
 	temperature_system.update(delta)
+	day_night_system.update(delta)
 	player.set_ambient_temperature(temperature_system.current_temperature())
 	player.update_player(delta)
 	if (
@@ -668,6 +705,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if game_paused:
 		return
+	if _is_interaction_highlight_toggle_event(event):
+		_set_interaction_highlight_visible(not interaction_highlight_visible)
+		get_viewport().set_input_as_handled()
+		return
 	if _is_hunting_toggle_event(event):
 		if hunting_system.can_hunt():
 			hunting_system.toggle_mode()
@@ -708,8 +749,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var clicked_cell := game_world.cell_for_world_position(pointer_position)
 		if game_world.is_water_tile(clicked_cell):
 			_show_water_context_menu(pointer_position)
-		elif planting_system.can_plant_at(pointer_position):
-			_show_planting_context_menu(pointer_position)
+		elif (
+			planting_system.can_plant_at(pointer_position)
+			or _can_show_dig_context(pointer_position)
+		):
+			_show_planting_context_menu(
+				pointer_position,
+				_can_show_dig_context(pointer_position)
+			)
 		get_viewport().set_input_as_handled()
 		return
 	if _is_hunting_shot_event(event):
@@ -720,6 +767,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if (
 			interaction_system.interact_current_tree()
 			or interaction_system.interact_current_stone()
+			or interaction_system.interact_current_shovel()
 		):
 			get_viewport().set_input_as_handled()
 		return
@@ -727,6 +775,61 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	input_state.handle_event(event)
+
+
+func _try_dig_at_pointer(pointer_position: Vector2) -> bool:
+	if tool_service.equipped_tool_id() != &"shovel":
+		return false
+
+	var cell := game_world.cell_for_world_position(pointer_position)
+	if game_world.is_water_tile(cell):
+		return false
+	if not game_world.is_valid_cell(cell):
+		return false
+	if not game_world.can_dig_cell(cell):
+		if game_world.is_dirt_tile(cell):
+			game_hud.show_notification("Este bloque ya está cavado.")
+		return true
+
+	var center := game_world.tile_center(cell)
+	if not catalog.playable_bounds().has_point(center):
+		game_hud.show_notification("No puedes cavar fuera de la zona jugable.")
+		return true
+	if player.global_position.distance_to(center) > PLANTING_CONTEXT_MAX_DISTANCE:
+		game_hud.show_notification("Acércate más para cavar.")
+		return true
+	if game_world.is_position_reserved(center, 0.0):
+		game_hud.show_notification("No puedes cavar aquí.")
+		return true
+	if ground_decoration_layer.has_stone_at(cell):
+		game_hud.show_notification("No puedes cavar donde hay una piedra.")
+		return true
+	if planting_system.has_content_at(cell):
+		game_hud.show_notification("No puedes cavar donde hay un cultivo.")
+		return true
+	if overworld_collision_world.is_position_blocked(center, 5.0):
+		game_hud.show_notification("No puedes cavar aquí.")
+		return true
+	if not tool_service.can_use_capability(&"dig"):
+		game_hud.show_notification("La pala está rota.")
+		return true
+	if not game_world.dig_cell(cell):
+		return true
+
+	ground_decoration_layer.clear_grass_at(cell)
+	tool_service.try_use_capability(&"dig")
+	game_hud.show_notification("Has cavado el suelo.")
+	return true
+
+
+func _can_show_dig_context(pointer_position: Vector2) -> bool:
+	if tool_service.equipped_tool_id() != &"shovel":
+		return false
+	var cell := game_world.cell_for_world_position(pointer_position)
+	return (
+		game_world.can_dig_cell(cell)
+		and catalog.playable_bounds().has_point(game_world.tile_center(cell))
+	)
 
 
 func _is_pressed_event(event: InputEvent) -> bool:
@@ -749,6 +852,24 @@ func _is_inventory_toggle_event(event: InputEvent) -> bool:
 	return (
 		_is_pressed_event(event)
 		and control_settings.matches_event(&"inventory", event)
+	)
+
+
+func _is_interaction_highlight_toggle_event(event: InputEvent) -> bool:
+	if mobile_build or not _is_pressed_event(event) or not event is InputEventKey:
+		return false
+	var key_event := event as InputEventKey
+	return key_event.keycode == KEY_F or key_event.physical_keycode == KEY_F
+
+
+func _set_interaction_highlight_visible(visible_value: bool) -> void:
+	interaction_highlight_visible = visible_value
+	if interaction_highlight == null:
+		return
+	interaction_highlight.set_enabled(
+		interaction_highlight_visible
+		and not mobile_build
+		and world_area_system.is_area_active(GameCatalog.OVERWORLD_AREA_ID)
 	)
 
 
@@ -1053,6 +1174,26 @@ func _on_ruined_house_interaction_requested(target: Node2D, _source: Node2D) -> 
 	game_hud.show_notification("Casa reparada por 750 monedas. Puedes entrar en ella.")
 
 
+func _on_shovel_pickup_requested(target: Node2D, _source: Node2D) -> void:
+	var pickup := target as ShovelPickupActor
+	if pickup == null or pickup != shovel_pickup:
+		return
+	if not tool_service.acquire_tool(&"shovel"):
+		game_hud.show_notification("No se pudo recoger la pala.")
+		return
+	_remove_shovel_pickup()
+	game_hud.show_notification("Has conseguido la pala.")
+
+
+func _remove_shovel_pickup() -> void:
+	if shovel_pickup == null:
+		return
+	interaction_system.unregister_interactable(shovel_pickup)
+	shovel_pickup.set_interaction_active(false)
+	shovel_pickup.queue_free()
+	shovel_pickup = null
+
+
 func _entrance_portal_for_house(house: HouseActor) -> AreaPortalDefinition:
 	if house == null or catalog == null:
 		return null
@@ -1326,6 +1467,9 @@ func _on_hotel_rest_requested(_target: Node, _source: Node) -> void:
 	):
 		return
 	hotel_sleeping = true
+	sleep_save_pending = true
+	sleep_should_save = false
+	sleep_save_failed = false
 	sleeping_area_label = "la casa" if interior.area_id == GameCatalog.REPAIRED_HOUSE_AREA_ID else "el hotel"
 	mobile_controls_before_hotel_sleep = mobile_controls.controls_enabled
 	input_state.reset_virtual_controls()
@@ -1333,30 +1477,54 @@ func _on_hotel_rest_requested(_target: Node, _source: Node) -> void:
 	interaction_system.set_enabled(false)
 	mobile_controls.set_enabled(false)
 	_refresh_hunting_mode_display()
+	game_hud.show_sleep_save_confirmation()
+
+
+func _on_sleep_save_decided(save: bool) -> void:
+	if not hotel_sleeping or not sleep_save_pending:
+		return
+	sleep_save_pending = false
+	sleep_should_save = save
 	_sleep_at_hotel()
 
 
 func _sleep_at_hotel() -> void:
 	await game_hud.play_sleep_transition(3.0)
 	if not is_inside_tree():
+		hotel_sleeping = false
+		sleep_save_pending = false
 		return
 	player.rest()
+	day_night_system.advance_to_next_day()
+	if sleep_should_save:
+		sleep_save_failed = not save_game_service.save_game(_snapshot_game())
 	hotel_sleeping = false
+	sleep_save_pending = false
 	interaction_system.set_enabled(true)
 	mobile_controls.set_enabled(mobile_controls_before_hotel_sleep)
 	input_state.reset_virtual_controls()
-	game_hud.show_notification(
+	var sleep_message := (
 		"Has descansado en %s. Salud y estamina restauradas." % sleeping_area_label
 	)
+	if sleep_save_failed:
+		sleep_message += " No se pudo guardar la partida."
+	game_hud.show_notification(
+		sleep_message
+	)
+	sleep_should_save = false
+	sleep_save_failed = false
 	_refresh_hunting_mode_display()
 
 
-func _show_planting_context_menu(pointer_position: Vector2) -> void:
+func _show_planting_context_menu(
+	pointer_position: Vector2,
+	can_dig: bool = false
+) -> void:
 	if game_hud.is_planting_context_visible() or game_hud.is_planting_visible():
 		return
 	planting_position = planting_system.tile_center_for_world_position(pointer_position)
 	context_position = planting_position
-	game_hud.show_planting_context_menu()
+	game_hud.show_planting_context_menu(can_dig)
 
 
 func _show_water_context_menu(pointer_position: Vector2) -> void:
@@ -1378,6 +1546,14 @@ func _on_planting_context_plant_requested() -> void:
 		return
 	_hide_planting_context_menu()
 	_open_planting(planting_position)
+
+
+func _on_terrain_context_dig_requested() -> void:
+	if not game_hud.is_planting_context_visible():
+		return
+	var dig_position := context_position
+	_hide_planting_context_menu()
+	_try_dig_at_pointer(dig_position)
 
 
 func _on_water_context_drink_requested() -> void:
@@ -1546,6 +1722,12 @@ func _on_inventory_item_changed(_item: ItemDefinition, _quantity: int) -> void:
 
 func _on_ground_stone_picked() -> void:
 	game_hud.show_notification("Has recogido una piedra.")
+
+
+func _on_ground_grass_picked(amount: int) -> void:
+	game_hud.show_notification(
+		"Has recogido %d hierba%s." % [amount, "" if amount == 1 else "s"]
+	)
 
 
 func _on_mining_stone_dropped(amount: int) -> void:
@@ -1809,7 +1991,9 @@ func _show_blacksmith_context_menu() -> void:
 func _on_area_changed(area_id: StringName, label: String) -> void:
 	game_hud.set_location(label)
 	interaction_highlight.set_enabled(
-		not mobile_build and area_id == GameCatalog.OVERWORLD_AREA_ID
+		interaction_highlight_visible
+		and not mobile_build
+		and area_id == GameCatalog.OVERWORLD_AREA_ID
 	)
 	_refresh_hunting_mode_display()
 	if initialized and not mobile_build:
@@ -1903,9 +2087,14 @@ func _snapshot_game() -> Dictionary:
 		"tools": tool_service.snapshot(),
 		"wallet": wallet.snapshot(),
 		"temperature": temperature_system.snapshot(),
+		"day_night": day_night_system.snapshot(),
 		"anvil_bars_completed": _anvil_bars_completed,
 		"ruined_house_repaired": ruined_house != null and ruined_house.is_repaired(),
+		"interaction_highlight_visible": interaction_highlight_visible,
+		"dug_cells": game_world.dug_cells_snapshot(),
+		"dug_regrowth_elapsed": game_world.dug_regrowth_elapsed(),
 		"ground_stones": ground_decoration_layer.snapshot(),
+		"ground_grass": ground_decoration_layer.grass_snapshot(),
 		"trees": forestry_system.snapshot(),
 		"plantings": planting_system.snapshot(),
 		"veins": mining_system.snapshot(),
@@ -1922,6 +2111,12 @@ func _load_saved_game() -> void:
 	var snapshot := save_game_service.load_game()
 	if snapshot.is_empty():
 		return
+	var saved_interaction_highlight: Variant = snapshot.get(
+		"interaction_highlight_visible",
+		null
+	)
+	if saved_interaction_highlight is bool:
+		interaction_highlight_visible = saved_interaction_highlight
 
 	var area_id := StringName(
 		str(snapshot.get("area", GameCatalog.OVERWORLD_AREA_ID))
@@ -1962,6 +2157,9 @@ func _load_saved_game() -> void:
 	if saved_temperature is Dictionary:
 		temperature_system.restore(saved_temperature as Dictionary)
 		player.set_ambient_temperature(temperature_system.current_temperature())
+	var saved_day_night: Variant = snapshot.get("day_night", {})
+	if saved_day_night is Dictionary:
+		day_night_system.restore(saved_day_night as Dictionary)
 	var player_position := Vector2(
 		float(saved_player.get("x", fallback_position.x)),
 		float(saved_player.get("y", fallback_position.y))
@@ -1971,20 +2169,35 @@ func _load_saved_game() -> void:
 		player.position = player_position
 	else:
 		world_area_system.transition_to(area_id, player_position)
+	_set_interaction_highlight_visible(interaction_highlight_visible)
 	player.restore(saved_player)
 
 	var saved_inventory: Variant = snapshot.get("inventory", {})
 	if saved_inventory is Dictionary:
 		inventory.restore(saved_inventory as Dictionary)
+	var saved_dug_cells: Variant = snapshot.get("dug_cells", null)
+	if saved_dug_cells is Array:
+		game_world.restore_dug_cells(saved_dug_cells as Array)
+	var saved_dug_regrowth_elapsed: Variant = snapshot.get(
+		"dug_regrowth_elapsed",
+		null
+	)
+	if typeof(saved_dug_regrowth_elapsed) == TYPE_FLOAT or typeof(saved_dug_regrowth_elapsed) == TYPE_INT:
+		game_world.restore_dug_regrowth_elapsed(float(saved_dug_regrowth_elapsed))
 	var saved_ground_stones: Variant = snapshot.get("ground_stones", null)
 	if saved_ground_stones is Array:
 		ground_decoration_layer.restore(saved_ground_stones as Array)
+	var saved_ground_grass: Variant = snapshot.get("ground_grass", null)
+	if saved_ground_grass is Array:
+		ground_decoration_layer.restore_grass(saved_ground_grass as Array)
 	var saved_wallet: Variant = snapshot.get("wallet", {})
 	if saved_wallet is Dictionary:
 		wallet.restore(saved_wallet as Dictionary)
 	var saved_tools: Variant = snapshot.get("tools", {})
 	if saved_tools is Dictionary:
 		tool_service.restore(saved_tools as Dictionary)
+	if tool_service.has_tool(&"shovel"):
+		_remove_shovel_pickup()
 	var saved_trees: Variant = snapshot.get("trees", [])
 	if saved_trees is Array:
 		forestry_system.restore(saved_trees as Array)

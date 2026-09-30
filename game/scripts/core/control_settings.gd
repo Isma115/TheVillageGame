@@ -43,7 +43,7 @@ const ACTION_LABELS := {
 	&"inventory": "Abrir inventario",
 	&"primary_action": "Acción principal (talar, recoger, disparar)",
 	&"minigame_action": "Golpear / mantener en minijuegos",
-	&"terrain_action": "Acciones del terreno",
+	&"terrain_action": "Acciones del terreno (cavar, plantar, beber)",
 	&"hunting_toggle": "Activar / desactivar caza",
 	&"hunting_weapon_1": "Seleccionar flechas en caza",
 	&"hunting_weapon_2": "Seleccionar piedras en caza",

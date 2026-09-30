@@ -550,6 +550,28 @@ text = "ALDEA"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="TimePanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -145.0
+offset_top = 54.0
+offset_right = 145.0
+offset_bottom = 90.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_debug")
+
+[node name="TimeLabel" type="Label" parent="TimePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.956863, 0.866667, 0.92)
+theme_override_font_sizes/font_size = 12
+text = "DÍA 1  ·  08:00  ·  Día"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="HuntingHint" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 visible = false
@@ -557,9 +579,9 @@ layout_mode = 0
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -280.0
-offset_top = 56.0
+offset_top = 98.0
 offset_right = 280.0
-offset_bottom = 100.0
+offset_bottom = 142.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_debug")
@@ -1295,7 +1317,7 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 0
 offset_right = 206.0
-offset_bottom = 96.0
+offset_bottom = 136.0
 z_index = 900
 theme_override_styles/panel = SubResource("StyleBox_context_menu")
 
@@ -1309,6 +1331,14 @@ custom_minimum_size = Vector2(190, 36)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Plantar"
+
+[node name="DigContextButton" type="Button" parent="PlantingContextMenu/PlantingContextActions"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(190, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Cavar"
 
 [node name="KitchenCookingContextButton" type="Button" parent="PlantingContextMenu/PlantingContextActions"]
 unique_name_in_owner = true

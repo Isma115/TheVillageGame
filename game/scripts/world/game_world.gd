@@ -22,9 +22,13 @@ var water_cells: Array[Vector2i] = []
 var water_tile_keys: Dictionary = {}
 var path_tiles: Array[Vector2i] = []
 var path_tile_keys: Dictionary = {}
+var dug_cells: Array[Vector2i] = []
+var dug_tile_keys: Dictionary = {}
 var placement_reservations: Dictionary = {}
 var _water_animation_elapsed := 0.0
 var _water_animation_state := 0
+var _dug_regrowth_elapsed := 0.0
+var _dug_regrowth_random := RandomNumberGenerator.new()
 @onready var water_animation_layer: Node = get_node_or_null("WaterAnimationLayer")
 var view_camera: Camera2D
 var _visible_world_rect := Rect2()
@@ -43,10 +47,13 @@ func initialize(
 	view_camera = camera
 	_visible_region_initialized = false
 	_clear_water_tiles()
+	_clear_dug_cells()
 	_clear_houses()
 	placement_reservations.clear()
 	_water_animation_elapsed = 0.0
 	_water_animation_state = 0
+	_dug_regrowth_elapsed = 0.0
+	_dug_regrowth_random.randomize()
 	_configure_water_tiles()
 	if water_animation_layer != null:
 		water_animation_layer.call("initialize", catalog, water_cells, view_camera)
@@ -84,7 +91,8 @@ func refresh_camera_culling() -> void:
 	_refresh_visible_region()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_update_dug_regrowth(delta)
 	_refresh_visible_region()
 
 
@@ -207,10 +215,108 @@ func is_valid_cell(cell: Vector2i) -> bool:
 
 func is_grass_tile(cell: Vector2i) -> bool:
 	return (
+		is_diggable_tile(cell)
+		and not is_dirt_tile(cell)
+	)
+
+
+func is_diggable_tile(cell: Vector2i) -> bool:
+	return (
 		is_valid_cell(cell)
 		and not path_tile_keys.has(_path_tile_key(cell.x, cell.y))
 		and not is_water_tile(cell)
 	)
+
+
+func is_dirt_tile(cell: Vector2i) -> bool:
+	return is_diggable_tile(cell) and dug_tile_keys.has(_path_tile_key(cell.x, cell.y))
+
+
+func can_dig_cell(cell: Vector2i) -> bool:
+	# Cada bloque que se pueda excavar podrá añadirse aquí al incorporar nuevos terrenos.
+	return is_grass_tile(cell)
+
+
+func dig_cell(cell: Vector2i) -> bool:
+	if not can_dig_cell(cell):
+		return false
+	var key := _path_tile_key(cell.x, cell.y)
+	if dug_tile_keys.has(key):
+		return false
+	dug_tile_keys[key] = true
+	dug_cells.append(cell)
+	queue_redraw()
+	return true
+
+
+func dug_cells_snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for cell in dug_cells:
+		result.append({
+			"x": cell.x,
+			"y": cell.y
+		})
+	return result
+
+
+func restore_dug_cells(snapshot_data: Array) -> void:
+	_clear_dug_cells()
+	for value in snapshot_data:
+		if not value is Dictionary:
+			continue
+		var data := value as Dictionary
+		var cell := Vector2i(
+			int(data.get("x", 2147483647)),
+			int(data.get("y", 2147483647))
+		)
+		if not is_diggable_tile(cell):
+			continue
+		var key := _path_tile_key(cell.x, cell.y)
+		if dug_tile_keys.has(key):
+			continue
+		dug_tile_keys[key] = true
+		dug_cells.append(cell)
+	queue_redraw()
+
+
+func dug_regrowth_elapsed() -> float:
+	return _dug_regrowth_elapsed
+
+
+func restore_dug_regrowth_elapsed(value: float) -> void:
+	if catalog == null or catalog.dug_regrowth_interval <= 0.0:
+		_dug_regrowth_elapsed = 0.0
+		return
+	_dug_regrowth_elapsed = clampf(value, 0.0, catalog.dug_regrowth_interval)
+
+
+func regrow_one_dug_cell() -> bool:
+	if catalog == null or dug_cells.is_empty():
+		return false
+
+	var cells_by_chunk: Dictionary = {}
+	for cell in dug_cells:
+		if not is_dirt_tile(cell):
+			continue
+		var chunk_key := _dug_chunk_key(cell)
+		var chunk_cells: Array = cells_by_chunk.get(chunk_key, [])
+		chunk_cells.append(cell)
+		cells_by_chunk[chunk_key] = chunk_cells
+	if cells_by_chunk.is_empty():
+		return false
+
+	var chunk_keys: Array = cells_by_chunk.keys()
+	var selected_chunk_key: String = chunk_keys[
+		_dug_regrowth_random.randi_range(0, chunk_keys.size() - 1)
+	]
+	var selected_chunk: Array = cells_by_chunk[selected_chunk_key]
+	var selected_cell: Vector2i = selected_chunk[
+		_dug_regrowth_random.randi_range(0, selected_chunk.size() - 1)
+	]
+	dug_tile_keys.erase(_path_tile_key(selected_cell.x, selected_cell.y))
+	dug_cells.erase(selected_cell)
+	queue_redraw()
+	return true
 
 
 func is_water_tile(cell: Vector2i) -> bool:
@@ -276,6 +382,44 @@ func _clear_houses() -> void:
 func _clear_water_tiles() -> void:
 	water_cells.clear()
 	water_tile_keys.clear()
+
+
+func _clear_dug_cells() -> void:
+	dug_cells.clear()
+	dug_tile_keys.clear()
+
+
+func _update_dug_regrowth(delta: float) -> void:
+	if (
+		delta <= 0.0
+		or catalog == null
+		or catalog.dug_regrowth_interval <= 0.0
+	):
+		return
+
+	_dug_regrowth_elapsed += delta
+	if _dug_regrowth_elapsed < catalog.dug_regrowth_interval:
+		return
+
+	var cycles := floori(_dug_regrowth_elapsed / catalog.dug_regrowth_interval)
+	_dug_regrowth_elapsed = fmod(
+		_dug_regrowth_elapsed,
+		catalog.dug_regrowth_interval
+	)
+	for _cycle in range(cycles):
+		if not regrow_one_dug_cell():
+			break
+
+
+func _dug_chunk_key(cell: Vector2i) -> String:
+	var chunk_size := maxi(catalog.dug_regrowth_chunk_size, 1)
+	var chunk_x := floori(
+		float(cell.x - catalog.world_origin_cell.x) / float(chunk_size)
+	)
+	var chunk_y := floori(
+		float(cell.y - catalog.world_origin_cell.y) / float(chunk_size)
+	)
+	return "%d:%d" % [chunk_x, chunk_y]
 
 
 func _configure_water_tiles() -> void:
@@ -349,9 +493,14 @@ func _draw() -> void:
 				tile_y * catalog.tile_size + catalog.tile_size / 2.0
 			)
 			var rotation := floorf(_hash_2d(tile_x, tile_y) * 4.0) * (PI / 2.0)
+			var terrain_texture := (
+				catalog.dirt_texture if is_dirt_tile(cell) else catalog.grass_texture
+			)
+			if terrain_texture == null:
+				continue
 			draw_set_transform(center, rotation, Vector2.ONE)
 			draw_texture_rect(
-				catalog.grass_texture,
+				terrain_texture,
 				Rect2(-catalog.tile_size / 2.0, -catalog.tile_size / 2.0, catalog.tile_size, catalog.tile_size),
 				false
 			)
@@ -512,6 +661,7 @@ func _draw_path_transitions(visible_rect: Rect2) -> void:
 			if (
 				path_tile_keys.has(_path_tile_key(neighbor_grid.x, neighbor_grid.y))
 				or is_water_tile(neighbor_grid)
+				or is_dirt_tile(neighbor_grid)
 			):
 				continue
 			_draw_grass_transition(tile, neighbor["side"])

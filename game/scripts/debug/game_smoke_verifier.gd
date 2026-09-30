@@ -118,6 +118,8 @@ func _validate_content() -> PackedStringArray:
 			errors.append("La herramienta predeterminada no permite talar.")
 	errors.append_array(_validate_tool_usage())
 	errors.append_array(_validate_tool_repair_flow())
+	errors.append_array(_validate_shovel_tool_flow())
+	errors.append_array(_validate_digging_flow())
 	errors.append_array(_validate_partial_save_restore())
 	errors.append_array(_validate_ruined_house_flow())
 	errors.append_array(_validate_merchant_flow())
@@ -812,6 +814,126 @@ func _validate_tool_repair_flow() -> PackedStringArray:
 	return errors
 
 
+func _validate_shovel_tool_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	var shovel := _tool_service.tool_for(&"shovel")
+	if shovel == null:
+		return ["La pala no está registrada como herramienta."]
+	if not shovel.supports(&"dig"):
+		errors.append("La pala no tiene la capacidad de cavar.")
+
+	var tool_snapshot := _tool_service.snapshot()
+	if _tool_service.has_tool(shovel.id):
+		errors.append("La pala aparece obtenida antes de recogerla.")
+	elif not _tool_service.acquire_tool(shovel.id):
+		errors.append("La pala no se puede adquirir.")
+	else:
+		if _tool_service.durability_of(shovel.id) != shovel.initial_durability():
+			errors.append("La pala no empieza con la durabilidad configurada.")
+		_tool_service.set_durability(shovel.id, 0)
+		var shovel_option_found := false
+		for option in _tool_service.repair_options():
+			if option.get("id", StringName()) != shovel.id:
+				continue
+			shovel_option_found = true
+			if not bool(option.get("owned", false)) or not bool(option.get("broken", false)):
+				errors.append("La pala rota no aparece como reparable en la herrería.")
+			if int(option.get("repair_cost", 0)) != 5:
+				errors.append("La pala rota no tiene el coste máximo de reparación.")
+			break
+		if not shovel_option_found:
+			errors.append("El menú de reparación no incluye la pala.")
+		elif not _tool_service.repair_tool(shovel.id):
+			errors.append("No se pudo reparar la pala rota.")
+		elif _tool_service.durability_of(shovel.id) != shovel.maximum_durability:
+			errors.append("La reparación de la pala no restauró su durabilidad máxima.")
+	_tool_service.restore(tool_snapshot)
+	return errors
+
+
+func _validate_digging_flow() -> PackedStringArray:
+	var errors := PackedStringArray()
+	var shovel := _tool_service.tool_for(&"shovel")
+	if shovel == null or not shovel.supports(&"dig"):
+		return ["No hay una pala con capacidad de cavado para probar el terreno."]
+	if _catalog.dirt_texture == null:
+		errors.append("El catálogo no tiene sprite para el bloque de tierra.")
+	_game_hud.show_planting_context_menu(true)
+	if not _game_hud.is_dig_context_visible():
+		errors.append("El menú de terreno no ofrece cavar junto a plantar.")
+	_game_hud.hide_planting_context_menu()
+
+	var test_cell := _find_dig_test_cell()
+	if not _game_world.is_valid_cell(test_cell):
+		errors.append("No hay un tile libre para probar el cavado.")
+		return errors
+
+	var tool_snapshot := _tool_service.snapshot()
+	var dug_snapshot := _game_world.dug_cells_snapshot()
+	var regrowth_elapsed_snapshot := _game_world.dug_regrowth_elapsed()
+	if not _tool_service.has_tool(shovel.id):
+		if not _tool_service.acquire_tool(shovel.id):
+			_tool_service.restore(tool_snapshot)
+			errors.append("La pala no se puede equipar para probar el cavado.")
+			return errors
+	else:
+		_tool_service.equip_tool(shovel.id)
+
+	var durability_before := _tool_service.durability_of(shovel.id)
+	if not _game_world.can_dig_cell(test_cell):
+		errors.append("El terreno libre no se puede marcar como cavable.")
+	elif not _game_world.dig_cell(test_cell):
+		errors.append("La pala no pudo cavar un tile de césped libre.")
+	else:
+		if not _game_world.is_dirt_tile(test_cell):
+			errors.append("El tile cavado no pasó a mostrarse como tierra.")
+		if _game_world.is_grass_tile(test_cell):
+			errors.append("El tile cavado sigue considerándose césped.")
+		if _tool_service.try_use_capability(&"dig") == null:
+			errors.append("Cavar no consume la pala correctamente.")
+		elif _tool_service.durability_of(shovel.id) != durability_before - shovel.durability_cost:
+			errors.append("Cavar no consume la durabilidad configurada de la pala.")
+
+	var digging_snapshot := _game_world.dug_cells_snapshot()
+	_game_world.restore_dug_cells(digging_snapshot)
+	if not _game_world.is_dirt_tile(test_cell):
+		errors.append("El bloque de tierra no se restaura desde el guardado.")
+	else:
+		_game_world.restore_dug_regrowth_elapsed(
+			maxf(_catalog.dug_regrowth_interval - 0.5, 0.0)
+		)
+		_game_world._process(1.0)
+		if _game_world.is_dirt_tile(test_cell):
+			errors.append("El ciclo global no recuperó el bloque de tierra.")
+		if not _game_world.can_dig_cell(test_cell):
+			errors.append("El bloque recuperado no volvió a ser césped cavable.")
+	_game_world.restore_dug_cells(dug_snapshot)
+	_game_world.restore_dug_regrowth_elapsed(regrowth_elapsed_snapshot)
+	_tool_service.restore(tool_snapshot)
+	return errors
+
+
+func _find_dig_test_cell() -> Vector2i:
+	if _catalog == null or _game_world == null:
+		return Vector2i(-1, -1)
+	var first_cell := _catalog.world_origin_cell
+	var last_cell := _catalog.last_world_cell_exclusive()
+	for tile_y in range(first_cell.y, last_cell.y):
+		for tile_x in range(first_cell.x, last_cell.x):
+			var cell := Vector2i(tile_x, tile_y)
+			if not _game_world.can_dig_cell(cell):
+				continue
+			var center := _game_world.tile_center(cell)
+			if _game_world.is_position_reserved(center, 0.0):
+				continue
+			if _ground_decoration_layer.has_stone_at(cell):
+				continue
+			if _planting_system.has_content_at(cell):
+				continue
+			return cell
+	return Vector2i(-1, -1)
+
+
 func _validate_ruined_house_flow() -> PackedStringArray:
 	var errors := PackedStringArray()
 	var house: RuinedHouseActor
@@ -886,6 +1008,7 @@ func _validate_overworld() -> PackedStringArray:
 		+ _game_world.house_count()
 		+ (
 			_ground_decoration_layer.stone_count()
+			+ _ground_decoration_layer.grass_count()
 			if _ground_decoration_layer != null
 			else 0
 		)
@@ -894,7 +1017,8 @@ func _validate_overworld() -> PackedStringArray:
 		if house.id == &"blacksmith":
 			expected_interactables += 1
 			break
-	expected_interactables += 2
+	# Tocón, casa derruida y pala junto a la casa.
+	expected_interactables += 3
 	var actual_interactables := _interaction_system.registered_count(
 		GameCatalog.OVERWORLD_AREA_ID
 	)

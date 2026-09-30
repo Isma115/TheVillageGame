@@ -14,15 +14,24 @@ const REPAIRED_HOUSE_AREA_ID: StringName = &"repaired_house"
 @export var grass_color := Color("#5d934f")
 @export var ink_color := Color("#193724")
 @export var grass_texture: Texture2D
+@export var dirt_texture: Texture2D
 @export var path_texture: Texture2D
 @export var lake_position := Vector2(1368.0, 1248.0)
 @export var lake_size := Vector2(240.0, 192.0)
+@export_range(1.0, 3600.0, 1.0) var dug_regrowth_interval := 45.0
+@export_range(1, 128, 1) var dug_regrowth_chunk_size := 8
 
 @export_category("Entorno")
 @export_range(0.0, 60.0, 0.1) var temperature_minimum := 25.0
 @export_range(0.0, 60.0, 0.1) var temperature_maximum := 30.0
 @export_range(1.0, 3600.0, 1.0) var temperature_cycle_duration := 240.0
 @export_range(0.0, 0.5, 0.01) var temperature_thirst_bonus := 0.05
+@export_range(60.0, 7200.0, 30.0) var day_night_cycle_duration := 900.0
+@export_range(0.0, 23.99, 0.25) var day_night_initial_hour := 8.0
+@export_range(0.0, 23.99, 0.25) var day_night_dawn_start_hour := 5.0
+@export_range(0.0, 23.99, 0.25) var day_night_sunrise_hour := 7.0
+@export_range(0.0, 23.99, 0.25) var day_night_sunset_hour := 19.0
+@export_range(0.0, 23.99, 0.25) var day_night_dusk_end_hour := 21.0
 
 @export_category("Contenido")
 @export var plaza := Vector2.ZERO
@@ -228,6 +237,8 @@ func _validate_world() -> PackedStringArray:
 		errors.append("El margen del mundo deja un área jugable vacía.")
 	if grass_texture == null:
 		errors.append("Falta la textura del césped.")
+	if dirt_texture == null:
+		errors.append("Falta la textura de la tierra.")
 	if path_texture == null:
 		errors.append("Falta la textura del camino.")
 	if not playable_bounds().has_point(player_spawn):
@@ -247,12 +258,26 @@ func _validate_world() -> PackedStringArray:
 			or not is_equal_approx(lake_origin.y / tile_size, roundf(lake_origin.y / tile_size))
 		):
 			errors.append("El lago debe alinearse con la cuadricula del terreno.")
+	if dug_regrowth_interval <= 0.0:
+		errors.append("El intervalo de recuperación del césped debe ser positivo.")
+	if dug_regrowth_chunk_size <= 0:
+		errors.append("El tamaño del sector de recuperación debe ser positivo.")
 	if temperature_maximum < temperature_minimum:
 		errors.append("La temperatura maxima no puede ser menor que la minima.")
 	if temperature_cycle_duration <= 0.0:
 		errors.append("El ciclo de temperatura debe ser positivo.")
 	if temperature_thirst_bonus < 0.0:
 		errors.append("El modificador de sed por temperatura no puede ser negativo.")
+	if day_night_cycle_duration <= 0.0:
+		errors.append("La duración del ciclo día/noche debe ser positiva.")
+	if day_night_initial_hour < 0.0 or day_night_initial_hour >= 24.0:
+		errors.append("La hora inicial del ciclo día/noche no es válida.")
+	if (
+		day_night_dawn_start_hour >= day_night_sunrise_hour
+		or day_night_sunrise_hour >= day_night_sunset_hour
+		or day_night_sunset_hour >= day_night_dusk_end_hour
+	):
+		errors.append("Las horas de amanecer y atardecer no están ordenadas.")
 	if player_run_speed < player_walk_speed:
 		errors.append("La velocidad al correr no puede ser menor que la de caminar.")
 	if player_exhausted_speed >= player_walk_speed:

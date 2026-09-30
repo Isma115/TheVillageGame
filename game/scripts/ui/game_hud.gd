@@ -5,6 +5,7 @@ signal mobile_controls_toggled(enabled: bool)
 signal pause_state_changed(paused: bool)
 signal save_confirmed(exit_after_save: bool)
 signal save_cancelled(exit_after_save: bool)
+signal sleep_save_decided(save: bool)
 signal dialogue_choice_selected(choice_index: int)
 signal dialogue_action_selected(action_index: int)
 signal dialogue_close_requested
@@ -17,6 +18,7 @@ signal doctor_bandage_purchase_requested
 signal planting_seed_selected(seed_id: StringName)
 signal planting_close_requested
 signal planting_context_plant_requested
+signal terrain_context_dig_requested
 signal water_context_drink_requested
 signal kitchen_seed_extraction_requested
 signal kitchen_cooking_requested
@@ -64,6 +66,7 @@ signal options_closed
 @onready var thirst_bar: ProgressBar = %ThirstBar
 @onready var thirst_value: Label = %ThirstValue
 @onready var temperature_value: Label = %TemperatureValue
+@onready var time_label: Label = %TimeLabel
 @onready var inventory_panel: PanelContainer = %InventoryPanel
 @onready var inventory_wallet_label: Label = %InventoryWalletLabel
 @onready var inventory_list: VBoxContainer = %InventoryList
@@ -100,6 +103,7 @@ signal options_closed
 @onready var planting_panel: PlantingPanel = %PlantingPanel
 @onready var planting_context_menu: PanelContainer = %PlantingContextMenu
 @onready var planting_context_button: Button = %PlantingContextButton
+@onready var dig_context_button: Button = %DigContextButton
 @onready var kitchen_cooking_context_button: Button = %KitchenCookingContextButton
 @onready var blacksmith_panel: BlacksmithPanel = %BlacksmithPanel
 @onready var blacksmith_repair_panel: BlacksmithRepairPanel = %BlacksmithRepairPanel
@@ -118,6 +122,7 @@ var _inventory_use_buttons: Dictionary = {}
 var _inventory_tool_labels: Dictionary = {}
 var _pause_open := false
 var _save_for_exit := false
+var _sleep_save_confirmation_visible := false
 var _stamina_capacity_limit := 100.0
 var _stamina_bar_base_width := 108.0
 var _vitals_panel_base_right := 258.0
@@ -160,6 +165,7 @@ func _ready() -> void:
 	planting_panel.seed_selected.connect(_on_planting_seed_selected)
 	planting_panel.close_requested.connect(_on_planting_close_requested)
 	planting_context_button.pressed.connect(_on_context_button_pressed)
+	dig_context_button.pressed.connect(_on_dig_context_button_pressed)
 	kitchen_cooking_context_button.pressed.connect(_on_kitchen_cooking_context_pressed)
 	planting_context_menu.gui_input.connect(_on_planting_context_menu_gui_input)
 	blacksmith_panel.coin_earned.connect(_on_blacksmith_coin_earned)
@@ -188,6 +194,7 @@ func initialize(
 	debug_panel.visible = not mobile_build
 	_pause_open = false
 	_save_for_exit = false
+	_sleep_save_confirmation_visible = false
 	pause_overlay.visible = false
 	pause_menu.visible = true
 	save_dialog.visible = false
@@ -346,6 +353,19 @@ func set_control_settings(settings) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _sleep_save_confirmation_visible and event is InputEventKey:
+		var key_event := event as InputEventKey
+		if (
+			key_event.pressed
+			and not key_event.echo
+			and (
+				key_event.keycode == KEY_ESCAPE
+				or key_event.physical_keycode == KEY_ESCAPE
+			)
+		):
+			_finish_sleep_save_confirmation(false)
+			get_viewport().set_input_as_handled()
+			return
 	if (
 		_remapping_action.is_empty()
 		or not control_remap_dialog.visible
@@ -468,6 +488,37 @@ func is_save_confirmation_visible() -> bool:
 	return save_dialog.visible
 
 
+func show_sleep_save_confirmation() -> void:
+	if _sleep_save_confirmation_visible:
+		return
+	_sleep_save_confirmation_visible = true
+	_save_for_exit = false
+	pause_overlay.visible = true
+	pause_menu.visible = false
+	save_dialog.visible = true
+	options_dialog.visible = false
+	controls_dialog.visible = false
+	control_remap_dialog.visible = false
+	_remapping_action = &""
+	pause_status.text = ""
+	save_heading.text = "Guardar antes de dormir"
+	save_question.text = "¿Quieres guardar la partida antes de dormir?"
+	save_accept_button.text = "Guardar"
+	save_cancel_button.text = "No guardar"
+	save_cancel_button.grab_focus()
+
+
+func _finish_sleep_save_confirmation(save: bool) -> void:
+	if not _sleep_save_confirmation_visible:
+		return
+	_sleep_save_confirmation_visible = false
+	save_dialog.visible = false
+	pause_overlay.visible = false
+	pause_menu.visible = true
+	_save_for_exit = false
+	sleep_save_decided.emit(save)
+
+
 func cancel_save_confirmation() -> void:
 	if not _pause_open:
 		return
@@ -516,14 +567,22 @@ func _show_save_confirmation(exit_after_save: bool) -> void:
 		if exit_after_save
 		else "¿Quieres guardar la partida actual?"
 	)
+	save_accept_button.text = "Aceptar"
+	save_cancel_button.text = "Cancelar"
 	save_accept_button.grab_focus()
 
 
 func _on_save_accept_pressed() -> void:
+	if _sleep_save_confirmation_visible:
+		_finish_sleep_save_confirmation(true)
+		return
 	save_confirmed.emit(_save_for_exit)
 
 
 func _on_save_cancel_pressed() -> void:
+	if _sleep_save_confirmation_visible:
+		_finish_sleep_save_confirmation(false)
+		return
 	var exit_after_save := _save_for_exit
 	if exit_after_save:
 		save_cancelled.emit(true)
@@ -538,7 +597,12 @@ func set_interaction_prompt(label: String, available: bool) -> void:
 		return
 
 	var shortcut := "E / ESPACIO"
-	if label.begins_with("Talar ") or label.begins_with("Recoger piedra"):
+	if (
+		label.begins_with("Talar ")
+		or label.begins_with("Recoger piedra")
+		or label.begins_with("Recoger hierba")
+		or label.begins_with("Recoger pala")
+	):
 		shortcut = (
 			_control_settings.binding_text(&"primary_action")
 			if _control_settings != null
@@ -646,6 +710,28 @@ func set_temperature(temperature: float) -> void:
 	temperature_value.text = "%.1f C" % temperature
 
 
+func set_game_time(
+	day_number: int,
+	hour: int,
+	minute: int,
+	phase: StringName
+) -> void:
+	var phase_text := "Noche"
+	match phase:
+		&"dawn":
+			phase_text = "Amanecer"
+		&"day":
+			phase_text = "Día"
+		&"dusk":
+			phase_text = "Atardecer"
+	time_label.text = "DÍA %d  ·  %02d:%02d  ·  %s" % [
+		day_number,
+		hour,
+		minute,
+		phase_text
+	]
+
+
 func show_merchant(
 	merchant: MerchantDefinition,
 	merchant_service: MerchantService
@@ -688,8 +774,8 @@ func is_doctor_visible() -> bool:
 	return doctor_panel.visible
 
 
-func show_planting_context_menu() -> void:
-	_show_context_menu(&"plant", "Plantar")
+func show_planting_context_menu(can_dig: bool = false) -> void:
+	_show_context_menu(&"plant", "Plantar", can_dig)
 
 
 func show_water_context_menu() -> void:
@@ -705,9 +791,14 @@ func show_kitchen_context_menu() -> void:
 	_show_context_menu(&"extract_seeds", "Extraer semillas")
 
 
-func _show_context_menu(action: StringName, label: String) -> void:
+func _show_context_menu(
+	action: StringName,
+	label: String,
+	show_dig_action: bool = false
+) -> void:
 	if action != &"extract_seeds":
 		kitchen_cooking_context_button.visible = false
+	dig_context_button.visible = action == &"plant" and show_dig_action
 	_context_action = action
 	planting_context_button.text = label
 	planting_context_menu.visible = true
@@ -725,12 +816,17 @@ func _show_context_menu(action: StringName, label: String) -> void:
 func hide_planting_context_menu() -> void:
 	planting_context_menu.visible = false
 	kitchen_cooking_context_button.visible = false
+	dig_context_button.visible = false
 	_context_action = &""
 	planting_context_button.text = "Plantar"
 
 
 func is_planting_context_visible() -> bool:
 	return planting_context_menu.visible
+
+
+func is_dig_context_visible() -> bool:
+	return planting_context_menu.visible and dig_context_button.visible
 
 
 func _on_context_button_pressed() -> void:
@@ -742,6 +838,10 @@ func _on_context_button_pressed() -> void:
 		kitchen_seed_extraction_requested.emit()
 	else:
 		planting_context_plant_requested.emit()
+
+
+func _on_dig_context_button_pressed() -> void:
+	terrain_context_dig_requested.emit()
 
 
 func _on_kitchen_cooking_context_pressed() -> void:

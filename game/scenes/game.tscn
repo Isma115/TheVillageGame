@@ -35,6 +35,10 @@ hotel_area_scene = ExtResource("22_hotel_area")
 woodcutting_stump_scene = ExtResource("23_woodcutting_stump")
 ruined_house_scene = ExtResource("25_ruined_house")
 
+[node name="DayNightModulate" type="CanvasModulate" parent="."]
+unique_name_in_owner = true
+color = Color(1, 1, 1, 1)
+
 [node name="Areas" type="Node2D" parent="."]
 
 [node name="DynamicAreas" type="Node2D" parent="Areas"]

@@ -190,6 +190,10 @@ func mature_crop_count() -> int:
 	return _mature_crops.size()
 
 
+func has_content_at(cell: Vector2i) -> bool:
+	return _plots.has(cell) or _mature_crops.has(cell)
+
+
 func remaining_time_at(cell: Vector2i) -> float:
 	var plot: Dictionary = _plots.get(cell, {})
 	return float(plot.get("remaining", -1.0))

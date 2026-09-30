@@ -16,7 +16,11 @@ func initialize(game_catalog: GameCatalog, active: bool) -> void:
 func set_enabled(active: bool) -> void:
 	enabled = active
 	visible = active
-	if not active:
+	if active and catalog != null:
+		var pointer_position := get_viewport().get_mouse_position()
+		var world_position: Vector2 = get_canvas_transform().affine_inverse() * pointer_position
+		_update_cell(world_position)
+	else:
 		current_cell = INVALID_CELL
 	queue_redraw()
 

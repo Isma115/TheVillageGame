@@ -96,6 +96,17 @@ func interact_current_stone() -> bool:
 	return true
 
 
+func interact_current_shovel() -> bool:
+	if not _is_current_valid():
+		return false
+	var shovel := _current as ShovelPickupActor
+	if shovel == null:
+		return false
+	shovel.interact(_source)
+	_refresh_target()
+	return true
+
+
 func register_interactable(target: InteractableActor) -> void:
 	if target == null:
 		return

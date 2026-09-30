@@ -17,6 +17,8 @@ const TOMATO_RADIUS := 108.0
 const CARROT_HALF_WIDTH := 56.0
 const CARROT_HALF_HEIGHT := 108.0
 const SAFE_RADIUS := 30.0
+const CUT_ERASE_COLOR := Color("1d3a29")
+const CUT_ERASE_SAMPLE_STEP := 4.0
 
 var vegetable_id: StringName = &"tomato"
 var _active := false
@@ -294,6 +296,17 @@ func _draw() -> void:
 		draw_line(_gesture_start, _gesture_end, Color("f1f4dd", 0.48), 3.0, true)
 
 	for cut in _cuts:
+		if not bool(cut.get("valid", false)):
+			continue
+		if float(cut.get("coverage_gain", 0.0)) <= 0.0:
+			continue
+		var start := cut.get("start", Vector2.ZERO) as Vector2
+		var end := cut.get("end", Vector2.ZERO) as Vector2
+		_draw_erased_cut(start, end)
+
+	for cut in _cuts:
+		if bool(cut.get("valid", false)):
+			continue
 		var start := cut.get("start", Vector2.ZERO) as Vector2
 		var end := cut.get("end", Vector2.ZERO) as Vector2
 		var cut_color := Color("ff8d78") if bool(cut.get("hit_center", false)) else Color("f1f4dd")
@@ -311,6 +324,30 @@ func _draw() -> void:
 		safe_color = Color("9be27a", 0.55)
 	draw_arc(center, SAFE_RADIUS, 0.0, TAU, 40, safe_color, 3.0, true)
 	draw_arc(center, SAFE_RADIUS - 7.0, 0.0, TAU, 40, safe_color, 1.0, true)
+
+
+func _draw_erased_cut(start: Vector2, end: Vector2) -> void:
+	var distance := start.distance_to(end)
+	var steps := maxi(1, ceili(distance / CUT_ERASE_SAMPLE_STEP))
+	var previous_point := start
+	var previous_inside := false
+	var erase_radius := CUT_SWATH_WIDTH * 0.5
+
+	for step in range(steps + 1):
+		var point := start.lerp(end, float(step) / float(steps))
+		var inside := _point_in_vegetable(point)
+		if inside:
+			draw_circle(point, erase_radius, CUT_ERASE_COLOR)
+			if previous_inside:
+				draw_line(
+					previous_point,
+					point,
+					CUT_ERASE_COLOR,
+					erase_radius * 2.0,
+					true
+				)
+		previous_point = point
+		previous_inside = inside
 
 
 func _draw_tomato(center: Vector2) -> void:

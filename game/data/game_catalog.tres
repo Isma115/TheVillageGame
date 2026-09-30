@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="GameCatalog" load_steps=57 format=3]
+[gd_resource type="Resource" script_class="GameCatalog" load_steps=60 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/game_catalog.gd" id="1_catalog"]
 [ext_resource type="Texture2D" path="res://assets/terrain/grass-texture.png" id="2_grass"]
+[ext_resource type="Texture2D" path="res://assets/terrain/dirt-texture.png" id="59_dirt"]
 [ext_resource type="Texture2D" path="res://assets/terrain/stone-grass-texture.png" id="3_path"]
 [ext_resource type="Resource" path="res://data/routes/main_road.tres" id="4_main"]
 [ext_resource type="Resource" path="res://data/routes/cream_house.tres" id="5_cream_route"]
@@ -56,6 +57,8 @@
 [ext_resource type="Resource" path="res://data/portals/hotel_exit.tres" id="37_hotel_exit"]
 [ext_resource type="Resource" path="res://data/repaired_house_interior.tres" id="55_repaired_house"]
 [ext_resource type="Resource" path="res://data/portals/repaired_house_exit.tres" id="56_repaired_house_exit"]
+[ext_resource type="Resource" path="res://data/items/grass.tres" id="57_grass"]
+[ext_resource type="Resource" path="res://data/tools/shovel.tres" id="58_shovel"]
 
 [resource]
 script = ExtResource("1_catalog")
@@ -67,20 +70,29 @@ edge_padding = 54.0
 grass_color = Color(0.364706, 0.576471, 0.309804, 1)
 ink_color = Color(0.0980392, 0.215686, 0.141176, 1)
 grass_texture = ExtResource("2_grass")
+dirt_texture = ExtResource("59_dirt")
 path_texture = ExtResource("3_path")
 lake_position = Vector2(1368, 1248)
 lake_size = Vector2(240, 192)
+dug_regrowth_interval = 45.0
+dug_regrowth_chunk_size = 8
 temperature_minimum = 25.0
 temperature_maximum = 30.0
 temperature_cycle_duration = 240.0
 temperature_thirst_bonus = 0.05
+day_night_cycle_duration = 900.0
+day_night_initial_hour = 8.0
+day_night_dawn_start_hour = 5.0
+day_night_sunrise_hour = 7.0
+day_night_sunset_hour = 19.0
+day_night_dusk_end_hour = 21.0
 plaza = Vector2(840, 830)
 path_routes = [ExtResource("4_main"), ExtResource("5_cream_route"), ExtResource("6_wood_route"), ExtResource("7_stone_route"), ExtResource("8_mine_route"), ExtResource("39_blacksmith_route")]
 houses = [ExtResource("9_cream"), ExtResource("10_wood"), ExtResource("11_stone"), ExtResource("40_blacksmith_house")]
 animals = [ExtResource("12_conejo"), ExtResource("13_ciervo"), ExtResource("14_pajaro"), ExtResource("15_jabali")]
-items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot"), ExtResource("50_bandage"), ExtResource("51_stone"), ExtResource("53_salad"), ExtResource("54_perfect_salad")]
+items = [ExtResource("16_wood"), ExtResource("17_coal"), ExtResource("18_iron"), ExtResource("19_copper"), ExtResource("20_gold"), ExtResource("21_silver"), ExtResource("31_arrows"), ExtResource("32_meat"), ExtResource("34_tree_seed"), ExtResource("38_apple"), ExtResource("41_tomato_seed"), ExtResource("42_wheat_seed"), ExtResource("43_carrot_seed"), ExtResource("47_tomato"), ExtResource("48_wheat"), ExtResource("49_carrot"), ExtResource("50_bandage"), ExtResource("51_stone"), ExtResource("53_salad"), ExtResource("54_perfect_salad"), ExtResource("57_grass")]
 crops = [ExtResource("44_tomato_crop"), ExtResource("45_wheat_crop"), ExtResource("46_carrot_crop")]
-tools = [ExtResource("27_axe"), ExtResource("28_pickaxe"), ExtResource("29_bow")]
+tools = [ExtResource("27_axe"), ExtResource("28_pickaxe"), ExtResource("29_bow"), ExtResource("58_shovel")]
 forest = ExtResource("22_forest")
 hotel = ExtResource("35_hotel")
 repaired_house_interior = ExtResource("55_repaired_house")
